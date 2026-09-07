@@ -1,0 +1,46 @@
+name: pov_studio
+description: Aplikasi Photobooth Self-Service — POV Studio
+publish_to: 'none'
+version: 0.1.0
+
+environment:
+  sdk: '>=3.3.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # State management
+  flutter_riverpod: ^2.5.1
+
+  # Networking
+  dio: ^5.4.3
+  connectivity_plus: ^6.0.3
+
+  # Kamera
+  camera: ^0.11.0          # kamera internal (tablet/webcam)
+  # DSLR via USB memerlukan integrasi native (libgphoto2) — lihat services/dslr_camera_service.dart
+
+  # QR code
+  qr_flutter: ^4.1.0
+
+  # Image processing (filter warna client-side)
+  image: ^4.2.0
+
+  # Print (Windows/iPad)
+  printing: ^5.13.1
+  pdf: ^3.11.0
+
+  # Util
+  uuid: ^4.4.0
+  intl: ^0.19.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/frames_cache/
