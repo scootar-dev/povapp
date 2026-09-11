@@ -27,7 +27,9 @@ return new class extends Migration
             $table->timestamp('created_at')->nullable();
         });
 
-        Schema::create('sessions', function (Blueprint $table) {
+        // Laravel session table renamed to avoid conflict with business `sessions` (photobooth)
+        // SESSION_DRIVER now = file, so this table is not needed. Keep for compatibility as `laravel_sessions`.
+        Schema::create('laravel_sessions', function (Blueprint $table) {
             $table->string('id')->primary();
             $table->foreignId('user_id')->nullable()->index();
             $table->string('ip_address', 45)->nullable();
@@ -44,6 +46,7 @@ return new class extends Migration
     {
         Schema::dropIfExists('users');
         Schema::dropIfExists('password_reset_tokens');
+        Schema::dropIfExists('laravel_sessions');
         Schema::dropIfExists('sessions');
     }
 };

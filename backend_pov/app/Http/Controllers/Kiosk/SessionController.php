@@ -17,7 +17,7 @@ class SessionController extends Controller
         ]);
 
         $session = Session::create([
-            'studio_id' => $request->attributes->get('studio_id'), // di-set middleware auth:studio-token
+            'studio_id' => $request->attributes->get('studio_id'),
             'frame_id' => $data['frame_id'] ?? null,
             'retake_quota' => $data['retake_quota'] ?? 2,
             'status' => 'started',
@@ -28,6 +28,8 @@ class SessionController extends Controller
 
     public function updateStatus(Request $request, Session $session)
     {
+        $this->ensureStudioScope($request, $session);
+
         $data = $request->validate([
             'status' => 'required|in:started,shooting,reviewing,rendering,printed,shared,completed,abandoned',
         ]);
@@ -39,6 +41,8 @@ class SessionController extends Controller
 
     public function applyFilter(Request $request, Session $session)
     {
+        $this->ensureStudioScope($request, $session);
+
         $data = $request->validate([
             'filter' => 'required|in:original,natural,cold,warm,bw,vintage',
         ]);
@@ -48,21 +52,38 @@ class SessionController extends Controller
         return response()->json(['data' => $session]);
     }
 
-    public function qrCode(Session $session)
+    public function qrCode(Request $request, Session $session)
     {
-        $url = config('app.url') . "/download/{$session->session_code}";
-        $svg = QrCode::format('svg')->size(300)->generate($url);
+        $this->ensureStudioScope($request, $session);
 
-        return response($svg)->header('Content-Type', 'image/svg+xml');
+        $url = config('app.url') . "/download/{$session->session_code}";
+
+        try {
+            $svg = QrCode::format('svg')->size(300)->generate($url);
+            return response($svg)->header('Content-Type', 'image/svg+xml');
+        } catch (\Throwable $e) {
+            // Fallback JSON jika driver imagick/GD untuk QR bermasalah
+            return response()->json(['data' => ['url' => $url, 'svg_error' => $e->getMessage()]]);
+        }
     }
 
-    public function complete(Session $session)
+    public function complete(Request $request, Session $session)
     {
+        $this->ensureStudioScope($request, $session);
+
         $session->update([
             'status' => 'completed',
             'completed_at' => now(),
         ]);
 
         return response()->json(['data' => $session]);
+    }
+
+    private function ensureStudioScope(Request $request, Session $session): void
+    {
+        $studioId = $request->attributes->get('studio_id');
+        if ((int) $session->studio_id !== (int) $studioId) {
+            abort(403, 'Sesi tidak termasuk studio ini.');
+        }
     }
 }

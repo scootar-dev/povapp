@@ -6,7 +6,7 @@ use App\Http\Controllers\PublicDownloadController;
 use Illuminate\Support\Facades\Route;
 
 // ===== KIOSK API (dipanggil Flutter) =====
-Route::prefix('kiosk')->middleware('auth:studio-token')->group(function () {
+Route::prefix('kiosk')->middleware('studio-token')->group(function () {
 
     Route::get('/frames', [Kiosk\FrameController::class, 'index']);
     Route::get('/frames/{frame}', [Kiosk\FrameController::class, 'show']);
