@@ -9,7 +9,11 @@ import '../state/session_state.dart';
 import 'preview_retake_screen.dart';
 
 class ShootScreen extends ConsumerStatefulWidget {
-  const ShootScreen({super.key});
+  /// Jika [singleSlotIndex] diisi, maka hanya foto slot tersebut yang diambil
+  /// (mode retake 1 slot). Jika null, mode burst semua slot.
+  final int? singleSlotIndex;
+
+  const ShootScreen({super.key, this.singleSlotIndex});
 
   @override
   ConsumerState<ShootScreen> createState() => _ShootScreenState();
@@ -42,6 +46,24 @@ class _ShootScreenState extends ConsumerState<ShootScreen> {
   }
 
   Future<void> _runBurst() async {
+    final isRetake = widget.singleSlotIndex != null;
+
+    if (isRetake) {
+      final slot = widget.singleSlotIndex!;
+      setState(() => _status = 'Foto ulang slot ${slot + 1}');
+
+      await _timerService.runShootCountdown(AppConfig.shootCountdownSeconds);
+
+      final path = await _camera.capturePhoto();
+      await ref.read(sessionProvider.notifier).addPhoto(slot, path);
+
+      if (mounted) {
+        // Kembali ke preview — pop jika dari retake, pushReplacement jika burst
+        Navigator.of(context).pop();
+      }
+      return;
+    }
+
     final totalSlots = ref.read(sessionProvider).frame?.photoCount ?? 4;
 
     for (var slot = 0; slot < totalSlots; slot++) {
