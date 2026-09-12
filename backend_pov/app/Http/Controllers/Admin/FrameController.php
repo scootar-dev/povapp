@@ -18,7 +18,9 @@ class FrameController extends Controller
         $data = $request->validate([
             'name' => 'required|string|max:255',
             'category' => 'nullable|string|max:100',
-            'overlay_path' => 'required|string',
+            'overlay' => 'nullable|image|max:10240',
+            'overlay_path' => 'nullable|string',
+            'thumbnail' => 'nullable|image|max:5120',
             'thumbnail_path' => 'nullable|string',
             'photo_count' => 'required|integer|min:1|max:12',
             'output_width_px' => 'required|integer',
@@ -33,6 +35,21 @@ class FrameController extends Controller
             'slots.*.height' => 'required|integer',
             'slots.*.rotation' => 'nullable|numeric',
         ]);
+
+        // Handle file uploads untuk overlay & thumbnail (prioritas file > string path)
+        if ($request->hasFile('overlay')) {
+            $data['overlay_path'] = $request->file('overlay')->store('frames/overlays', 'public');
+        }
+        if ($request->hasFile('thumbnail')) {
+            $data['thumbnail_path'] = $request->file('thumbnail')->store('frames/thumbnails', 'public');
+        }
+
+        // Hapus key file agar tidak masuk ke create()
+        unset($data['overlay'], $data['thumbnail']);
+
+        if (empty($data['overlay_path'] ?? null)) {
+            return response()->json(['message' => 'overlay_path atau file overlay wajib diisi'], 422);
+        }
 
         $frame = Frame::create($data);
         $frame->slots()->createMany($data['slots']);
@@ -51,11 +68,21 @@ class FrameController extends Controller
             'name' => 'sometimes|string|max:255',
             'category' => 'nullable|string|max:100',
             'is_active' => 'sometimes|boolean',
+            'overlay' => 'nullable|image|max:10240',
+            'thumbnail' => 'nullable|image|max:5120',
         ]);
+
+        if ($request->hasFile('overlay')) {
+            $data['overlay_path'] = $request->file('overlay')->store('frames/overlays', 'public');
+        }
+        if ($request->hasFile('thumbnail')) {
+            $data['thumbnail_path'] = $request->file('thumbnail')->store('frames/thumbnails', 'public');
+        }
+        unset($data['overlay'], $data['thumbnail']);
 
         $frame->update($data);
 
-        return response()->json(['data' => $frame]);
+        return response()->json(['data' => $frame->load('slots')]);
     }
 
     public function destroy(Frame $frame)

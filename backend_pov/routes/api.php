@@ -34,8 +34,13 @@ Route::prefix('kiosk')->middleware('studio-token')->group(function () {
 // ===== PUBLIC (diakses via QR code, tanpa auth studio) =====
 Route::get('/download/{sessionCode}', [PublicDownloadController::class, 'show']);
 
+// ===== ADMIN AUTH (public) =====
+Route::post('/admin/login', [Admin\AuthController::class, 'login']);
+
 // ===== ADMIN API (dashboard, auth Sanctum) =====
 Route::prefix('admin')->middleware('auth:sanctum')->group(function () {
+    Route::post('/logout', [Admin\AuthController::class, 'logout']);
+    Route::get('/me', [Admin\AuthController::class, 'me']);
     Route::apiResource('frames', Admin\FrameController::class);
     Route::apiResource('studios', Admin\StudioController::class);
     Route::get('/sessions', [Admin\SessionController::class, 'index']);
