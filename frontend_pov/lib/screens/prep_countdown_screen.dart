@@ -51,31 +51,35 @@ class _PrepCountdownScreenState extends ConsumerState<PrepCountdownScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final progress = _remaining / AppConfig.prepTimerSeconds;
     return Scaffold(
       backgroundColor: Colors.black,
       body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              'Bersiap-siap!',
-              style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 24),
-            Text(
-              '$_remaining',
-              style: const TextStyle(color: Colors.white, fontSize: 120, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 40),
-            ElevatedButton(
-              onPressed: _onSiapPressed,
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 20),
-                textStyle: const TextStyle(fontSize: 22),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('Bersiap-siap!', style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.w600)),
+              const SizedBox(height: 8),
+              const Text('Posisikan diri di depan kamera', style: TextStyle(color: Colors.white70, fontSize: 14)),
+              const SizedBox(height: 24),
+              Stack(alignment: Alignment.center, children: [
+                SizedBox(width: 200, height: 200, child: CircularProgressIndicator(value: progress, strokeWidth: 8, backgroundColor: Colors.white12)),
+                Text('$_remaining', style: const TextStyle(color: Colors.white, fontSize: 96, fontWeight: FontWeight.bold)),
+              ]),
+              const SizedBox(height: 32),
+              LinearProgressIndicator(value: progress, backgroundColor: Colors.white12),
+              const SizedBox(height: 32),
+              FilledButton(
+                onPressed: _onSiapPressed,
+                style: FilledButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 20), textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                child: const Text('Siap — Jepret Sekarang'),
               ),
-              child: const Text('Siap / Jepret Sekarang'),
-            ),
-          ],
+              const SizedBox(height: 12),
+              TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Batal', style: TextStyle(color: Colors.white54))),
+            ],
+          ),
         ),
       ),
     );

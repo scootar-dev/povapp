@@ -15,14 +15,14 @@ class ThankYouScreen extends ConsumerStatefulWidget {
 
 class _ThankYouScreenState extends ConsumerState<ThankYouScreen> {
   Timer? _resetTimer;
+  Timer? _tick;
+  int _remaining = AppConfig.thankYouResetSeconds;
 
   @override
   void initState() {
     super.initState();
-    _resetTimer = Timer(
-      const Duration(seconds: AppConfig.thankYouResetSeconds),
-      _resetToWelcome,
-    );
+    _tick = Timer.periodic(const Duration(seconds: 1), (t){ if(mounted) setState(()=>_remaining = (_remaining-1).clamp(0, AppConfig.thankYouResetSeconds)); });
+    _resetTimer = Timer(const Duration(seconds: AppConfig.thankYouResetSeconds), _resetToWelcome);
   }
 
   Future<void> _resetToWelcome() async {
@@ -36,31 +36,28 @@ class _ThankYouScreenState extends ConsumerState<ThankYouScreen> {
   }
 
   @override
-  void dispose() {
-    _resetTimer?.cancel();
-    super.dispose();
-  }
+  void dispose() { _tick?.cancel(); _resetTimer?.cancel(); super.dispose(); }
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
+    return Scaffold(
       backgroundColor: Colors.black,
       body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.favorite, color: Colors.pinkAccent, size: 72),
-            SizedBox(height: 24),
-            Text(
-              'Terima Kasih!',
-              style: TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 12),
-            Text(
-              'Sampai jumpa di sesi foto berikutnya',
-              style: TextStyle(color: Colors.white70, fontSize: 16),
-            ),
-          ],
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            const Icon(Icons.favorite, color: Colors.pinkAccent, size: 72),
+            const SizedBox(height: 24),
+            const Text('Terima Kasih!', style: TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 12),
+            const Text('Sampai jumpa di sesi foto berikutnya', style: TextStyle(color: Colors.white70, fontSize: 16)),
+            const SizedBox(height: 24),
+            Text('Kembali ke awal dalam $_remaining detik', style: const TextStyle(color: Colors.white54, fontSize: 12)),
+            const SizedBox(height: 16),
+            SizedBox(width: 160, child: LinearProgressIndicator(value: _remaining / AppConfig.thankYouResetSeconds)),
+            const SizedBox(height: 24),
+            FilledButton(onPressed: _resetToWelcome, child: const Text('Selesai Sekarang')),
+          ]),
         ),
       ),
     );
