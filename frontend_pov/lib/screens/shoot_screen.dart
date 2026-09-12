@@ -9,6 +9,7 @@ import '../core/app_config.dart';
 import '../services/internal_camera_service.dart';
 import '../services/timer_service.dart';
 import '../state/session_state.dart';
+import '../widgets/frame_overlay.dart';
 import 'preview_retake_screen.dart';
 
 class ShootScreen extends ConsumerStatefulWidget {
@@ -33,6 +34,7 @@ class _ShootScreenState extends ConsumerState<ShootScreen> {
   int _countdown = AppConfig.shootCountdownSeconds;
   String _status = 'Menyiapkan kamera...';
   bool _flash = false;
+  int _activeSlot = 0;
 
   @override
   void initState() {
@@ -109,7 +111,7 @@ class _ShootScreenState extends ConsumerState<ShootScreen> {
     final totalSlots = ref.read(sessionProvider).frame?.photoCount ?? 4;
     for (var slot = 0; slot < totalSlots; slot++) {
       if (!mounted) return;
-      setState(() => _status = 'Foto ${slot + 1} dari $totalSlots');
+      setState(() { _status = 'Foto ${slot + 1} dari $totalSlots'; _activeSlot = slot; });
       await _timerService.runShootCountdown(AppConfig.shootCountdownSeconds);
       try {
         final path = await _captureWithFallback(slot);
@@ -168,16 +170,22 @@ class _ShootScreenState extends ConsumerState<ShootScreen> {
           else
             const Center(child: Column(mainAxisSize: MainAxisSize.min, children: [CircularProgressIndicator(), SizedBox(height: 12), Text('Menyiapkan kamera...', style: TextStyle(color: Colors.white54))])),
 
-          // Overlay frame transparan bisa ditumpuk di sini menggunakan
-          // frame.slots[slot ke berapa yang sedang berjalan] sebagai acuan posisi kotak foto.
+          // Live overlay kotak slot
+          if (_cameraReady && ref.read(sessionProvider).frame != null)
+            Positioned.fill(
+              child: IgnorePointer(
+                child: FrameOverlay(frame: ref.read(sessionProvider).frame!, activeSlot: _activeSlot),
+              ),
+            ),
           Positioned(
             top: 24,
             left: 0,
             right: 0,
             child: Center(
-              child: Text(
-                _status,
-                style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w600),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(color: Colors.black54, borderRadius: BorderRadius.circular(20)),
+                child: Text(_status, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
               ),
             ),
           ),

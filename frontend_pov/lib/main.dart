@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'core/kiosk_idle.dart';
 import 'screens/welcome_screen.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
   runApp(const ProviderScope(child: PovStudioApp()));
 }
 
@@ -15,13 +17,12 @@ class PovStudioApp extends StatelessWidget {
     return MaterialApp(
       title: 'POV Studio',
       debugShowCheckedModeBanner: false,
-      // Kiosk selalu landscape & tidak boleh idle-timeout OS — atur di
-      // main native (AndroidManifest / Info.plist) untuk kiosk mode penuh.
       theme: ThemeData(
         useMaterial3: true,
         colorSchemeSeed: Colors.deepPurple,
         brightness: Brightness.dark,
       ),
+      builder: (ctx, child) => KioskIdleWrapper(child: child!),
       home: const WelcomeScreen(),
     );
   }
