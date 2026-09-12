@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/app_config.dart';
+import '../core/responsive.dart';
 import '../models/photo_model.dart';
 import '../services/filter_service.dart';
 import '../state/session_state.dart';
@@ -45,12 +46,12 @@ class _FilterScreenState extends ConsumerState<FilterScreen> {
             child: photos.isEmpty
                 ? const Center(child: Text('Tidak ada foto untuk preview'))
                 : GridView.builder(
-                    padding: const EdgeInsets.all(16),
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
+                    padding: EdgeInsets.all(Responsive.padding(context)),
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: Responsive.photoColumns(context),
                       crossAxisSpacing: 12,
                       mainAxisSpacing: 12,
-                      childAspectRatio: 0.85,
+                      childAspectRatio: Responsive.isMobile(context) ? 0.85 : 0.9,
                     ),
                     itemCount: photos.length,
                     itemBuilder: (context, i) {

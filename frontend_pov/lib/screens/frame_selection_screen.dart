@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/app_config.dart';
+import '../core/responsive.dart';
 import '../models/frame_model.dart';
 import '../state/session_state.dart';
 import 'prep_countdown_screen.dart';
@@ -19,12 +20,12 @@ class FrameSelectionScreen extends ConsumerWidget {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, _) => Center(child: Text('Gagal memuat frame: $err')),
         data: (frames) => GridView.builder(
-          padding: const EdgeInsets.all(24),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 3,
-            crossAxisSpacing: 16,
-            mainAxisSpacing: 16,
-            childAspectRatio: 0.75,
+          padding: EdgeInsets.all(Responsive.padding(context)),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: Responsive.frameColumns(context),
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 12,
+            childAspectRatio: Responsive.isMobile(context) ? 0.85 : 0.75,
           ),
           itemCount: frames.length,
           itemBuilder: (context, i) => _FrameCard(

@@ -20,7 +20,7 @@ class _ThankYouScreenState extends ConsumerState<ThankYouScreen> {
   void initState() {
     super.initState();
     _resetTimer = Timer(
-      Duration(seconds: AppConfig.thankYouResetSeconds),
+      const Duration(seconds: AppConfig.thankYouResetSeconds),
       _resetToWelcome,
     );
   }
@@ -43,20 +43,20 @@ class _ThankYouScreenState extends ConsumerState<ThankYouScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return const Scaffold(
       backgroundColor: Colors.black,
       body: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.favorite, color: Colors.pinkAccent, size: 72),
-            const SizedBox(height: 24),
-            const Text(
+            Icon(Icons.favorite, color: Colors.pinkAccent, size: 72),
+            SizedBox(height: 24),
+            Text(
               'Terima Kasih!',
               style: TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 12),
-            const Text(
+            SizedBox(height: 12),
+            Text(
               'Sampai jumpa di sesi foto berikutnya',
               style: TextStyle(color: Colors.white70, fontSize: 16),
             ),

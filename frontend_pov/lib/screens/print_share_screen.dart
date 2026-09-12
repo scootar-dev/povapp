@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 import '../core/app_config.dart';
+import '../core/responsive.dart';
 import '../services/share_service.dart';
 import '../state/session_state.dart';
 import 'thank_you_screen.dart';
@@ -26,79 +27,88 @@ class _PrintShareScreenState extends ConsumerState<PrintShareScreen> {
   Widget build(BuildContext context) {
     final session = ref.watch(sessionProvider);
     final qrUrl = '${AppConfig.baseUrl.replaceFirst('/api', '')}/download/${session.sessionCode}';
+    final isMobile = Responsive.isMobile(context);
+
+    Widget printColumn() => Column(
+          children: [
+            const Text('Cetak Foto', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                icon: const Icon(Icons.print),
+                label: Text(_printing ? 'Mencetak...' : 'Cetak Sekarang'),
+                onPressed: _printing ? null : _handlePrint,
+              ),
+            ),
+            const SizedBox(height: 32),
+            const Text('Scan untuk unduh digital', style: TextStyle(fontSize: 16)),
+            const SizedBox(height: 12),
+            Center(child: QrImageView(data: qrUrl, size: isMobile ? 160 : 180)),
+            const SizedBox(height: 8),
+            SelectableText(qrUrl, style: const TextStyle(fontSize: 10, color: Colors.white54), textAlign: TextAlign.center),
+          ],
+        );
+
+    Widget shareColumn() => Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text('Kirim Digital', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 16),
+            SegmentedButton<String>(
+              segments: const [
+                ButtonSegment(value: 'whatsapp', label: Text('WhatsApp'), icon: Icon(Icons.chat)),
+                ButtonSegment(value: 'email', label: Text('Email'), icon: Icon(Icons.email)),
+              ],
+              selected: {_channel},
+              onSelectionChanged: (s) => setState(() => _channel = s.first),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _inputController,
+              keyboardType: _channel == 'whatsapp' ? TextInputType.phone : TextInputType.emailAddress,
+              decoration: InputDecoration(
+                labelText: _channel == 'whatsapp' ? 'Nomor WhatsApp' : 'Alamat Email',
+                border: const OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 16),
+            FilledButton.icon(
+              icon: const Icon(Icons.send),
+              label: Text(_sharing ? 'Mengirim...' : 'Kirim'),
+              onPressed: _sharing ? null : _handleShare,
+            ),
+            if (_feedback != null) ...[
+              const SizedBox(height: 12),
+              Text(_feedback!, style: const TextStyle(color: Colors.greenAccent)),
+            ],
+            const SizedBox(height: 16),
+            OutlinedButton(onPressed: _goToThankYou, child: const Text('Selesai')),
+          ],
+        );
 
     return Scaffold(
       appBar: AppBar(title: const Text('Cetak & Bagikan')),
       body: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // ---- Kolom Print ----
-            Expanded(
-              child: Column(
-                children: [
-                  const Text('Cetak Foto', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 16),
-                  FilledButton.icon(
-                    icon: const Icon(Icons.print),
-                    label: Text(_printing ? 'Mencetak...' : 'Cetak Sekarang'),
-                    onPressed: _printing ? null : _handlePrint,
-                  ),
-                  const SizedBox(height: 32),
-                  const Text('Scan untuk unduh digital', style: TextStyle(fontSize: 16)),
-                  const SizedBox(height: 12),
-                  QrImageView(data: qrUrl, size: 180),
-                ],
-              ),
-            ),
-            const VerticalDivider(width: 48),
-            // ---- Kolom Share ----
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const Text('Kirim Digital', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 16),
-                  SegmentedButton<String>(
-                    segments: const [
-                      ButtonSegment(value: 'whatsapp', label: Text('WhatsApp'), icon: Icon(Icons.chat)),
-                      ButtonSegment(value: 'email', label: Text('Email'), icon: Icon(Icons.email)),
-                    ],
-                    selected: {_channel},
-                    onSelectionChanged: (s) => setState(() => _channel = s.first),
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: _inputController,
-                    keyboardType: _channel == 'whatsapp'
-                        ? TextInputType.phone
-                        : TextInputType.emailAddress,
-                    decoration: InputDecoration(
-                      labelText: _channel == 'whatsapp' ? 'Nomor WhatsApp' : 'Alamat Email',
-                      border: const OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  FilledButton.icon(
-                    icon: const Icon(Icons.send),
-                    label: Text(_sharing ? 'Mengirim...' : 'Kirim'),
-                    onPressed: _sharing ? null : _handleShare,
-                  ),
-                  if (_feedback != null) ...[
-                    const SizedBox(height: 12),
-                    Text(_feedback!, style: const TextStyle(color: Colors.greenAccent)),
+        padding: EdgeInsets.all(Responsive.padding(context)),
+        child: isMobile
+            ? SingleChildScrollView(
+                child: Column(
+                  children: [
+                    printColumn(),
+                    const Divider(height: 48),
+                    shareColumn(),
                   ],
-                  const Spacer(),
-                  OutlinedButton(
-                    onPressed: _goToThankYou,
-                    child: const Text('Selesai'),
-                  ),
+                ),
+              )
+            : Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: printColumn()),
+                  const VerticalDivider(width: 48),
+                  Expanded(child: shareColumn()),
                 ],
               ),
-            ),
-          ],
-        ),
       ),
     );
   }
