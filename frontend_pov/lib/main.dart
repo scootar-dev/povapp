@@ -19,7 +19,7 @@ class PovStudioApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
-        colorSchemeSeed: Colors.deepPurple,
+        colorSchemeSeed: const Color.fromARGB(255, 228, 227, 231),
         brightness: Brightness.dark,
       ),
       builder: (ctx, child) => KioskIdleWrapper(child: child!),
