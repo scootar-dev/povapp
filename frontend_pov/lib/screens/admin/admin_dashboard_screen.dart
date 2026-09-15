@@ -327,10 +327,12 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                         studioToken: studio['device_token'],
                         cameraSource: studio['camera_source'],
                       );
-                      setState(() {});
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Kiosk dihubungkan ke: ${studio['name']}')),
-                      );
+                      if (mounted) {
+                        setState(() {});
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Kiosk dihubungkan ke: ${studio['name']}')),
+                        );
+                      }
                     },
                     child: Text(isCurrent ? 'Terhubung' : 'Hubungkan Kiosk ini'),
                   ),
