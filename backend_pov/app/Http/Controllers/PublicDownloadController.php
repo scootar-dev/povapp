@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Resources\OutputResource;
 use App\Models\Session;
 
 class PublicDownloadController extends Controller
@@ -19,10 +20,7 @@ class PublicDownloadController extends Controller
         return response()->json([
             'data' => [
                 'session_code' => $session->session_code,
-                'outputs' => $session->outputs->map(fn ($o) => [
-                    'type' => $o->type,
-                    'url' => asset('storage/' . $o->file_path),
-                ]),
+                'outputs' => OutputResource::collection($session->outputs),
             ],
         ]);
     }

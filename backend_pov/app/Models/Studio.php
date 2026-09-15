@@ -11,7 +11,7 @@ class Studio extends Model
 
     protected $fillable = [
         'name', 'location', 'camera_source', 'printer_driver',
-        'device_token', 'is_active',
+        'welcome_overlay_path', 'device_token', 'is_active',
     ];
 
     protected $hidden = ['device_token'];

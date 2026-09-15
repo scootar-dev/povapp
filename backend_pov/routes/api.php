@@ -6,7 +6,7 @@ use App\Http\Controllers\PublicDownloadController;
 use Illuminate\Support\Facades\Route;
 
 // ===== KIOSK API (dipanggil Flutter) =====
-Route::prefix('kiosk')->middleware('auth:studio-token')->group(function () {
+Route::prefix('kiosk')->middleware(['auth:studio-token', 'throttle:kiosk'])->group(function () {
 
     Route::get('/frames', [Kiosk\FrameController::class, 'index']);
     Route::get('/frames/{frame}', [Kiosk\FrameController::class, 'show']);
@@ -32,13 +32,20 @@ Route::prefix('kiosk')->middleware('auth:studio-token')->group(function () {
 });
 
 // ===== PUBLIC (diakses via QR code, tanpa auth studio) =====
-Route::get('/download/{sessionCode}', [PublicDownloadController::class, 'show']);
+Route::get('/download/{sessionCode}', [PublicDownloadController::class, 'show'])->middleware('throttle:public_download');
 
-// ===== ADMIN API (dashboard, auth Sanctum) =====
-Route::prefix('admin')->middleware('auth:sanctum')->group(function () {
-    Route::apiResource('frames', Admin\FrameController::class);
-    Route::apiResource('studios', Admin\StudioController::class);
-    Route::get('/sessions', [Admin\SessionController::class, 'index']);
-    Route::get('/sessions/{session}', [Admin\SessionController::class, 'show']);
-    Route::get('/reports/summary', [Admin\ReportController::class, 'summary']);
+// ===== ADMIN AUTH & API (dashboard, auth Sanctum) =====
+Route::prefix('admin')->group(function () {
+    Route::post('/login', [Admin\AuthController::class, 'login'])->middleware('throttle:admin_login');
+
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::get('/me', [Admin\AuthController::class, 'me']);
+        Route::post('/logout', [Admin\AuthController::class, 'logout']);
+
+        Route::apiResource('frames', Admin\FrameController::class);
+        Route::apiResource('studios', Admin\StudioController::class);
+        Route::get('/sessions', [Admin\SessionController::class, 'index']);
+        Route::get('/sessions/{session}', [Admin\SessionController::class, 'show']);
+        Route::get('/reports/summary', [Admin\ReportController::class, 'summary']);
+    });
 });

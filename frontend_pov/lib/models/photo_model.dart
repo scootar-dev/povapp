@@ -1,25 +1,26 @@
 class PhotoModel {
   final int id;
   final int slotIndex;
-  final String filePath; // path relatif di server (storage/public)
-  final String? localPath; // path file lokal sebelum/selagi upload
+  final String? url;
+  final String? filePath;
+  final String? localPath;
 
   PhotoModel({
     required this.id,
     required this.slotIndex,
-    required this.filePath,
+    this.url,
+    this.filePath,
     this.localPath,
   });
 
   factory PhotoModel.fromJson(Map<String, dynamic> json) => PhotoModel(
         id: json['id'],
-        slotIndex: json['slot_index'],
+        slotIndex: json['slot_index'] ?? 0,
+        url: json['url'],
         filePath: json['file_path'],
       );
 }
 
-/// Sesuai spesifikasi: Original, Natural, Cold/Cool Tone, Warm Tone,
-/// Black & White, Vintage/Sepia.
 enum PhotoColorFilter { original, natural, cold, warm, blackWhite, vintage }
 
 extension PhotoColorFilterX on PhotoColorFilter {

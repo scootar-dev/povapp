@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Kiosk;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Kiosk\StorePhotoRequest;
+use App\Http\Resources\PhotoResource;
 use App\Models\Photo;
 use App\Models\Session;
 use Illuminate\Http\Request;
@@ -14,12 +16,9 @@ class PhotoController extends Controller
     /**
      * Upload satu foto hasil jepretan untuk slot tertentu.
      */
-    public function store(Request $request, Session $session)
+    public function store(StorePhotoRequest $request, Session $session)
     {
-        $data = $request->validate([
-            'slot_index' => 'required|integer|min:0',
-            'photo' => 'required|image|max:20480', // 20MB, raw dari kamera bisa besar
-        ]);
+        $data = $request->validated();
 
         $path = $request->file('photo')->store("sessions/{$session->session_code}", 'public');
 
@@ -31,7 +30,7 @@ class PhotoController extends Controller
             'attempt_number' => 1,
         ]);
 
-        return response()->json(['data' => $photo], 201);
+        return new PhotoResource($photo);
     }
 
     /**
@@ -41,7 +40,7 @@ class PhotoController extends Controller
     {
         $photos = $session->photos()->where('is_selected', true)->orderBy('slot_index')->get();
 
-        return response()->json(['data' => $photos]);
+        return PhotoResource::collection($photos);
     }
 
     /**

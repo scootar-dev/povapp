@@ -20,58 +20,80 @@ class RenderOutputJob implements ShouldQueue
     {
     }
 
+    public int $tries = 2;
+    public int $backoff = 10;
+
     public function handle(): void
     {
         $session = $this->session->fresh(['frame.slots', 'selectedPhotos']);
         $frame = $session->frame;
 
-        // Kanvas dasar sesuai resolusi output frame (300 DPI)
-        $canvas = Image::canvas($frame->output_width_px, $frame->output_height_px, '#ffffff');
+        if (! $frame) {
+            \Illuminate\Support\Facades\Log::error("RenderOutputJob error: Frame not found for session {$session->id}");
+            return;
+        }
 
-        foreach ($session->selectedPhotos as $photo) {
-            $slot = $frame->slots->firstWhere('slot_index', $photo->slot_index);
-            if (! $slot) {
-                continue;
+        try {
+            // Kanvas dasar sesuai resolusi output frame (300 DPI)
+            $canvas = Image::canvas($frame->output_width_px, $frame->output_height_px, '#ffffff');
+
+            foreach ($session->selectedPhotos as $photo) {
+                $slot = $frame->slots->firstWhere('slot_index', $photo->slot_index);
+                if (! $slot) {
+                    continue;
+                }
+
+                $img = Image::make(Storage::disk('public')->path($photo->file_path))
+                    ->fit($slot->width, $slot->height)
+                    ->rotate(-$slot->rotation);
+
+                if ($session->filter_applied) {
+                    $img = \App\Services\ImageFilterService::apply($img, $session->filter_applied);
+                }
+
+                $canvas->insert($img, 'top-left', $slot->x, $slot->y);
             }
 
-            $img = Image::make(Storage::disk('public')->path($photo->file_path))
-                ->fit($slot->width, $slot->height)
-                ->rotate(-$slot->rotation);
+            // Tempel overlay frame (PNG transparan) di atas foto
+            $overlayPath = Storage::disk('public')->path($frame->overlay_path);
+            if (file_exists($overlayPath)) {
+                $canvas->insert($overlayPath, 'top-left', 0, 0);
+            }
 
-            $canvas->insert($img, 'top-left', $slot->x, $slot->y);
+            $outputPath = "sessions/{$session->session_code}/output_print.jpg";
+            Storage::disk('public')->put($outputPath, (string) $canvas->encode('jpg', 95));
+
+            Output::create([
+                'session_id' => $session->id,
+                'type' => 'print_image',
+                'file_path' => $outputPath,
+                'dpi' => $frame->dpi,
+            ]);
+
+            // Digital version (resolusi lebih rendah untuk WA/Email agar cepat dikirim)
+            $digitalPath = "sessions/{$session->session_code}/output_digital.jpg";
+            $canvas->resize($frame->output_width_px / 2, null, function ($c) {
+                $c->aspectRatio();
+            });
+            Storage::disk('public')->put($digitalPath, (string) $canvas->encode('jpg', 85));
+
+            Output::create([
+                'session_id' => $session->id,
+                'type' => 'digital_image',
+                'file_path' => $digitalPath,
+            ]);
+
+            // TODO: generate GIF/video dari selectedPhotos (mis. pakai FFMpeg) sebagai output type 'gif'/'video'
+
+            $session->update(['status' => 'reviewing']);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error("RenderOutputJob failed for session {$session->id}: {$e->getMessage()}");
+            throw $e;
         }
+    }
 
-        // Tempel overlay frame (PNG transparan) di atas foto
-        $overlayPath = Storage::disk('public')->path($frame->overlay_path);
-        if (file_exists($overlayPath)) {
-            $canvas->insert($overlayPath, 'top-left', 0, 0);
-        }
-
-        $outputPath = "sessions/{$session->session_code}/output_print.jpg";
-        Storage::disk('public')->put($outputPath, (string) $canvas->encode('jpg', 95));
-
-        Output::create([
-            'session_id' => $session->id,
-            'type' => 'print_image',
-            'file_path' => $outputPath,
-            'dpi' => $frame->dpi,
-        ]);
-
-        // Digital version (resolusi lebih rendah untuk WA/Email agar cepat dikirim)
-        $digitalPath = "sessions/{$session->session_code}/output_digital.jpg";
-        $canvas->resize($frame->output_width_px / 2, null, function ($c) {
-            $c->aspectRatio();
-        });
-        Storage::disk('public')->put($digitalPath, (string) $canvas->encode('jpg', 85));
-
-        Output::create([
-            'session_id' => $session->id,
-            'type' => 'digital_image',
-            'file_path' => $digitalPath,
-        ]);
-
-        // TODO: generate GIF/video dari selectedPhotos (mis. pakai FFMpeg) sebagai output type 'gif'/'video'
-
-        $session->update(['status' => 'reviewing']);
+    public function failed(\Throwable $exception): void
+    {
+        \Illuminate\Support\Facades\Log::critical("RenderOutputJob permanently failed for session {$this->session->id}: {$exception->getMessage()}");
     }
 }

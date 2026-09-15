@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Kiosk;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\OutputResource;
 use App\Jobs\RenderOutputJob;
 use App\Models\Session;
 
@@ -23,6 +24,6 @@ class OutputController extends Controller
 
     public function index(Session $session)
     {
-        return response()->json(['data' => $session->outputs]);
+        return OutputResource::collection($session->outputs);
     }
 }

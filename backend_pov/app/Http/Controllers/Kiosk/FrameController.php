@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Kiosk;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\FrameResource;
 use App\Models\Frame;
 
 class FrameController extends Controller
@@ -12,11 +13,9 @@ class FrameController extends Controller
      */
     public function index()
     {
-        $frames = Frame::where('is_active', true)
-            ->select('id', 'name', 'category', 'thumbnail_path', 'photo_count', 'print_size')
-            ->get();
+        $frames = Frame::where('is_active', true)->get();
 
-        return response()->json(['data' => $frames]);
+        return FrameResource::collection($frames);
     }
 
     /**
@@ -26,6 +25,6 @@ class FrameController extends Controller
     {
         $frame->load('slots');
 
-        return response()->json(['data' => $frame]);
+        return new FrameResource($frame);
     }
 }

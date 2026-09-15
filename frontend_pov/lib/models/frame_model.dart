@@ -12,11 +12,11 @@ class FrameSlot {
   });
 
   factory FrameSlot.fromJson(Map<String, dynamic> json) => FrameSlot(
-        slotIndex: json['slot_index'],
-        x: (json['x'] as num).toDouble(),
-        y: (json['y'] as num).toDouble(),
-        width: (json['width'] as num).toDouble(),
-        height: (json['height'] as num).toDouble(),
+        slotIndex: json['slot_index'] ?? 0,
+        x: (json['x'] as num?)?.toDouble() ?? 0,
+        y: (json['y'] as num?)?.toDouble() ?? 0,
+        width: (json['width'] as num?)?.toDouble() ?? 100,
+        height: (json['height'] as num?)?.toDouble() ?? 100,
         rotation: (json['rotation'] as num?)?.toDouble() ?? 0,
       );
 }
@@ -25,7 +25,8 @@ class FrameModel {
   final int id;
   final String name;
   final String? category;
-  final String? thumbnailPath;
+  final String? thumbnailUrl;
+  final String? overlayUrl;
   final int photoCount;
   final String printSize;
   final List<FrameSlot> slots;
@@ -34,7 +35,8 @@ class FrameModel {
     required this.id,
     required this.name,
     this.category,
-    this.thumbnailPath,
+    this.thumbnailUrl,
+    this.overlayUrl,
     required this.photoCount,
     required this.printSize,
     this.slots = const [],
@@ -42,11 +44,12 @@ class FrameModel {
 
   factory FrameModel.fromJson(Map<String, dynamic> json) => FrameModel(
         id: json['id'],
-        name: json['name'],
+        name: json['name'] ?? 'Frame',
         category: json['category'],
-        thumbnailPath: json['thumbnail_path'],
-        photoCount: json['photo_count'],
-        printSize: json['print_size'],
+        thumbnailUrl: json['thumbnail_url'] ?? json['thumbnail_path'],
+        overlayUrl: json['overlay_url'] ?? json['overlay_path'],
+        photoCount: json['photo_count'] ?? 4,
+        printSize: json['print_size'] ?? '4r',
         slots: (json['slots'] as List<dynamic>? ?? [])
             .map((s) => FrameSlot.fromJson(s))
             .toList(),

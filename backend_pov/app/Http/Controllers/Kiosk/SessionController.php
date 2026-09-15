@@ -3,18 +3,17 @@
 namespace App\Http\Controllers\Kiosk;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Kiosk\StoreSessionRequest;
+use App\Http\Resources\SessionResource;
 use App\Models\Session;
 use Illuminate\Http\Request;
 use SimpleSoftwareIO\QrCode\Facades\QrCode; // composer require simplesoftwareio/simple-qrcode
 
 class SessionController extends Controller
 {
-    public function store(Request $request)
+    public function store(StoreSessionRequest $request)
     {
-        $data = $request->validate([
-            'frame_id' => 'nullable|exists:frames,id',
-            'retake_quota' => 'nullable|integer|min:0|max:10',
-        ]);
+        $data = $request->validated();
 
         $session = Session::create([
             'studio_id' => $request->attributes->get('studio_id'), // di-set middleware auth:studio-token
@@ -23,7 +22,7 @@ class SessionController extends Controller
             'status' => 'started',
         ]);
 
-        return response()->json(['data' => $session], 201);
+        return new SessionResource($session);
     }
 
     public function updateStatus(Request $request, Session $session)
@@ -34,7 +33,7 @@ class SessionController extends Controller
 
         $session->update(['status' => $data['status']]);
 
-        return response()->json(['data' => $session]);
+        return new SessionResource($session);
     }
 
     public function applyFilter(Request $request, Session $session)
@@ -45,7 +44,7 @@ class SessionController extends Controller
 
         $session->update(['filter_applied' => $data['filter']]);
 
-        return response()->json(['data' => $session]);
+        return new SessionResource($session);
     }
 
     public function qrCode(Session $session)
@@ -63,6 +62,6 @@ class SessionController extends Controller
             'completed_at' => now(),
         ]);
 
-        return response()->json(['data' => $session]);
+        return new SessionResource($session);
     }
 }
