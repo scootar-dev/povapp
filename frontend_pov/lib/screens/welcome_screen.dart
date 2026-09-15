@@ -171,7 +171,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
                     'POV PHOTOBOOTH',
                     style: Theme.of(context).textTheme.displayMedium?.copyWith(
                           color: Colors.white,
-                          fontWeight: FontWeight.black,
+                          fontWeight: FontWeight.w900,
                           letterSpacing: 6,
                           shadows: [
                             const Shadow(blurRadius: 30, color: Colors.purpleAccent),

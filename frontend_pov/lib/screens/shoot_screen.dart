@@ -190,7 +190,7 @@ class _ShootScreenState extends ConsumerState<ShootScreen> {
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 180,
-                fontWeight: FontWeight.black,
+                fontWeight: FontWeight.w900,
                 shadows: [
                   Shadow(blurRadius: 40, color: Colors.purpleAccent),
                   Shadow(blurRadius: 20, color: Colors.black),

@@ -72,7 +72,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [Colors.black, Colors.purple.shade950],
+            colors: [Colors.black, const Color(0xFF10002B)],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
@@ -81,7 +81,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(32),
             child: Container(
-              maxWidth: 450,
+              constraints: const BoxConstraints(maxWidth: 450),
               padding: const EdgeInsets.all(32),
               decoration: BoxDecoration(
                 color: Colors.white.withOpacity(0.08),
