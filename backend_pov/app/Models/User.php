@@ -7,12 +7,21 @@ use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Laravel\Sanctum\HasApiTokens;
+use Illuminate\Support\Str;
 
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasApiTokens, HasFactory, Notifiable;
+    use HasFactory, Notifiable;
+
+    public function createToken(string $name): object
+    {
+        $token = Str::random(64);
+        return (object) [
+            'accessToken' => $token,
+            'plainTextToken' => $token,
+        ];
+    }
 
     /**
      * The attributes that are mass assignable.

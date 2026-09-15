@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import '../core/app_config.dart';
 import '../services/dslr_camera_service.dart';
 import '../services/internal_camera_service.dart';
-import 'admin/admin_login_screen.dart';
+import 'admin/admin_dashboard_screen.dart';
 import 'frame_selection_screen.dart';
 
 class WelcomeScreen extends StatefulWidget {
@@ -55,6 +55,65 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
     }
   }
 
+  Future<void> _showExitPinDialog() async {
+    final pinCtrl = TextEditingController();
+    String? pinError;
+
+    await showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          backgroundColor: const Color(0xFF1F0038),
+          title: const Row(
+            children: [
+              Icon(Icons.lock, color: Colors.purpleAccent),
+              SizedBox(width: 8),
+              Text('PIN Operator (Keluar Kiosk)', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('Masukkan PIN operator untuk kembali ke Admin Event Manager:', style: TextStyle(color: Colors.white70, fontSize: 13)),
+              const SizedBox(height: 16),
+              TextField(
+                controller: pinCtrl,
+                obscureText: true,
+                keyboardType: TextInputType.number,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Colors.white, fontSize: 24, letterSpacing: 8, fontWeight: FontWeight.bold),
+                decoration: InputDecoration(
+                  hintText: '••••',
+                  hintStyle: const TextStyle(color: Colors.white24),
+                  errorText: pinError,
+                  border: const OutlineInputBorder(),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Batal', style: TextStyle(color: Colors.white70))),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.purpleAccent),
+              onPressed: () {
+                if (pinCtrl.text.trim() == '1234') {
+                  Navigator.pop(ctx);
+                  Navigator.of(context).pushAndRemoveUntil(
+                    MaterialPageRoute(builder: (_) => const AdminDashboardScreen()),
+                    (route) => false,
+                  );
+                } else {
+                  setDialogState(() => pinError = 'PIN Salah! Default PIN: 1234');
+                }
+              },
+              child: const Text('Keluar ke Admin', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   void dispose() {
     _pulseController.dispose();
@@ -73,7 +132,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
       body: Stack(
         fit: StackFit.expand,
         children: [
-          // 1. LIVE CAMERA PREVIEW BACKGROUND (NYALA SAAT WELCOME)
+          // 1. LIVE CAMERA PREVIEW BACKGROUND
           if (_cameraReady)
             _isDslr
                 ? StreamBuilder<Uint8List>(
@@ -100,15 +159,14 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
               ),
             ),
 
-          // 2. FUN OVERLAY DESIGN / ADMIN WELCOME OVERLAY
-          // Translucent gradient vignette overlay to make text readable
+          // 2. FUN VIGNETTE OVERLAY
           Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
                   Colors.black.withOpacity(0.4),
-                  Colors.purple.withOpacity(0.2),
-                  Colors.black.withOpacity(0.7),
+                  Colors.purple.withOpacity(0.15),
+                  Colors.black.withOpacity(0.75),
                 ],
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
@@ -116,7 +174,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
             ),
           ),
 
-          // Fun Sticker Overlay (Cute & Fun photobooth decorations)
+          // Fun Sticker Badges
           Positioned(
             top: 40,
             left: 40,
@@ -215,18 +273,14 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
             ),
           ),
 
-          // 4. HIDDEN ADMIN LOGIN BUTTON (TOP RIGHT)
+          // 4. OPERATOR LOCK / PIN EXIT BUTTON (TOP RIGHT)
           Positioned(
             top: 24,
             right: 24,
             child: IconButton(
-              icon: Icon(Icons.admin_panel_settings, color: Colors.white.withOpacity(0.6), size: 32),
-              tooltip: 'Admin Settings',
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const AdminLoginScreen()),
-                );
-              },
+              icon: Icon(Icons.lock_outline_rounded, color: Colors.white.withOpacity(0.7), size: 32),
+              tooltip: 'Keluar ke Event Manager (PIN)',
+              onPressed: _showExitPinDialog,
             ),
           ),
         ],

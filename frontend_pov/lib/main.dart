@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/app_config.dart';
-import 'screens/welcome_screen.dart';
+import 'screens/admin/admin_dashboard_screen.dart';
+import 'screens/admin/admin_login_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -15,17 +16,25 @@ class PovStudioApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // If admin is authenticated, open Admin Dashboard Launcher; otherwise open Admin Login.
+    final initialHome = AppConfig.adminToken.isNotEmpty
+        ? const AdminDashboardScreen()
+        : const AdminLoginScreen();
+
     return MaterialApp(
-      title: 'POV Studio',
+      title: 'POV Studio Booth Manager',
       debugShowCheckedModeBanner: false,
-      // Kiosk selalu landscape & tidak boleh idle-timeout OS — atur di
-      // main native (AndroidManifest / Info.plist) untuk kiosk mode penuh.
       theme: ThemeData(
         useMaterial3: true,
-        colorSchemeSeed: Colors.deepPurple,
+        colorSchemeSeed: Colors.purple,
         brightness: Brightness.dark,
+        scaffoldBackgroundColor: const Color(0xFF0F071A),
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Color(0xFF190A2D),
+          elevation: 0,
+        ),
       ),
-      home: const WelcomeScreen(),
+      home: initialHome,
     );
   }
 }
