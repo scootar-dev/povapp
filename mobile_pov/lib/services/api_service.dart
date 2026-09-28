@@ -1,36 +1,27 @@
 import 'package:dio/dio.dart';
 import '../config.dart';
 
-class OutputItem {
-  final String type;
-  final String url;
-  OutputItem({required this.type, required this.url});
-  factory OutputItem.fromJson(Map<String, dynamic> j) =>
-      OutputItem(type: j['type'], url: j['url']);
-}
-
-class SessionResult {
-  final String sessionCode;
-  final List<OutputItem> outputs;
-  SessionResult({required this.sessionCode, required this.outputs});
-}
-
 class ApiService {
-  final Dio _dio = Dio(BaseOptions(
-    baseUrl: AppConfig.baseUrl,
-    connectTimeout: const Duration(seconds: 10),
-    receiveTimeout: const Duration(seconds: 30),
-  ));
+  final Dio _dio = Dio(BaseOptions(baseUrl: AppConfig.baseUrl, connectTimeout: const Duration(seconds: 10), receiveTimeout: const Duration(seconds: 30), headers: {'Accept': 'application/json'}));
+  // kiosk token dari env atau bisa diisi via settings (untuk demo pakai hardcode fallback)
+  String get _token => const String.fromEnvironment('STUDIO_TOKEN', defaultValue: 'kiosk-token-123');
 
-  Future<SessionResult> fetchDownload(String sessionCode) async {
-    final res = await _dio.get('/api/download/$sessionCode');
-    final data = res.data['data'];
-    final outs = (data['outputs'] as List).map((o) => OutputItem.fromJson(o)).toList();
-    return SessionResult(sessionCode: data['session_code'], outputs: outs);
+  Dio get withAuth {
+    _dio.options.headers['Authorization'] = 'Bearer $_token';
+    return _dio;
   }
 
-  Future<String> downloadFile(String url, String savePath) async {
-    await _dio.download(url, savePath);
-    return savePath;
+  Future<Response> getFrames() => withAuth.get('/api/kiosk/frames');
+  Future<Response> createSession({required int frameId}) => withAuth.post('/api/kiosk/sessions', data: {'frame_id': frameId});
+  Future<Response> updateStatus(int id, String s) => withAuth.patch('/api/kiosk/sessions/$id/status', data: {'status': s});
+  Future<Response> uploadPhoto(int sid, int slot, String path) async {
+    final fd = FormData.fromMap({'slot_index': slot, 'photo': await MultipartFile.fromFile(path)});
+    return withAuth.post('/api/kiosk/sessions/$sid/photos', data: fd);
   }
+  Future<Response> renderOutput(int sid) => withAuth.post('/api/kiosk/sessions/$sid/render');
+  Future<Response> getOutputs(int sid) => withAuth.get('/api/kiosk/sessions/$sid/outputs');
+  Future<Response> complete(int sid) => withAuth.post('/api/kiosk/sessions/$sid/complete');
+
+  // public
+  Future<Response> fetchDownload(String code) => Dio(BaseOptions(baseUrl: AppConfig.baseUrl)).get('/api/download/$code');
 }
