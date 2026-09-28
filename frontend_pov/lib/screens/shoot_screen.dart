@@ -10,7 +10,7 @@ import '../services/internal_camera_service.dart';
 import '../services/timer_service.dart';
 import '../state/session_state.dart';
 import '../widgets/frame_overlay.dart';
-import 'preview_retake_screen.dart';
+import 'preview_select_screen.dart';
 
 class ShootScreen extends ConsumerStatefulWidget {
   /// Jika [singleSlotIndex] diisi, maka hanya foto slot tersebut yang diambil
@@ -121,7 +121,7 @@ class _ShootScreenState extends ConsumerState<ShootScreen> {
       }
     }
     if (mounted) {
-      Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const PreviewRetakeScreen()));
+      Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const PreviewSelectScreen()));
     }
   }
 
@@ -156,7 +156,7 @@ class _ShootScreenState extends ConsumerState<ShootScreen> {
                       await ref.read(sessionProvider.notifier).addPhoto(slot, path);
                       if (mounted && widget.singleSlotIndex != null) Navigator.of(context).pop();
                       if (mounted && ref.read(sessionProvider).photos.length >= (ref.read(sessionProvider).frame?.photoCount ?? 4)) {
-                        Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const PreviewRetakeScreen()));
+                        Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const PreviewSelectScreen()));
                       }
                     } catch (e) { if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e'))); }
                   }, icon: const Icon(Icons.photo_library), label: const Text('Pilih dari Galeri (Testing)')),

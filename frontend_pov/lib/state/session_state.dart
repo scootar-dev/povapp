@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/api_client.dart';
 import '../models/frame_model.dart';
 import '../models/photo_model.dart';
+import '../models/sticker_model.dart';
 
 /// Data sesi yang hidup dari Frame Selection sampai Thank You screen.
 /// Ini satu-satunya sumber kebenaran (single source of truth) untuk sesi
@@ -12,6 +13,8 @@ class SessionData {
   final String? sessionCode;
   final FrameModel? frame;
   final List<PhotoModel> photos;
+  final List<PlacedSticker> stickers;
+  final List<int> selectedIndices;
   final int retakeQuota;
   final int retakeUsed;
   final PhotoColorFilter selectedFilter;
@@ -22,6 +25,8 @@ class SessionData {
     this.sessionCode,
     this.frame,
     this.photos = const [],
+    this.stickers = const [],
+    this.selectedIndices = const [],
     this.retakeQuota = 2,
     this.retakeUsed = 0,
     this.selectedFilter = PhotoColorFilter.original,
@@ -35,6 +40,8 @@ class SessionData {
     String? sessionCode,
     FrameModel? frame,
     List<PhotoModel>? photos,
+    List<PlacedSticker>? stickers,
+    List<int>? selectedIndices,
     int? retakeQuota,
     int? retakeUsed,
     PhotoColorFilter? selectedFilter,
@@ -45,6 +52,8 @@ class SessionData {
       sessionCode: sessionCode ?? this.sessionCode,
       frame: frame ?? this.frame,
       photos: photos ?? this.photos,
+      stickers: stickers ?? this.stickers,
+      selectedIndices: selectedIndices ?? this.selectedIndices,
       retakeQuota: retakeQuota ?? this.retakeQuota,
       retakeUsed: retakeUsed ?? this.retakeUsed,
       selectedFilter: selectedFilter ?? this.selectedFilter,
@@ -155,6 +164,37 @@ class SessionNotifier extends StateNotifier<SessionData> {
       await _api.share(state.sessionId!, channel, recipient);
       lastError = null;
     } catch (e) { lastError = e.toString(); rethrow; }
+  }
+
+  void toggleSticker(StickerModel s) {
+    final exists = state.stickers.any((p) => p.sticker.id == s.id);
+    if (exists) {
+      state = state.copyWith(stickers: state.stickers.where((p) => p.sticker.id != s.id).toList());
+    } else {
+      final dx = 0.2 + (state.stickers.length * 0.15) % 0.6;
+      final dy = 0.2 + (state.stickers.length * 0.12) % 0.6;
+      state = state.copyWith(stickers: [...state.stickers, PlacedSticker(sticker: s, dx: dx, dy: dy)]);
+    }
+  }
+
+  void updateStickerPos(int idx, double dx, double dy) {
+    final list = [...state.stickers];
+    list[idx] = PlacedSticker(sticker: list[idx].sticker, dx: dx, dy: dy, scale: list[idx].scale);
+    state = state.copyWith(stickers: list);
+  }
+
+  void toggleSelect(int idx) {
+    final s = [...state.selectedIndices];
+    if (s.contains(idx)) {
+      s.remove(idx);
+    } else {
+      s.add(idx);
+    }
+    state = state.copyWith(selectedIndices: s);
+  }
+
+  void selectFrameForSticker(FrameModel f) {
+    state = state.copyWith(frame: f);
   }
 
   Future<void> completeAndReset() async {
