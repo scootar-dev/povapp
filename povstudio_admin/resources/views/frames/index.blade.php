@@ -1848,6 +1848,7 @@ if (sortFrame) {
     );
 
 }
+<img src="{{ asset('storage/' . $frame->gambar) }}" alt="{{ $frame->nama }}">
 
 </script>
 
