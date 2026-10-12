@@ -26,6 +26,10 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>POV Studio membutuhkan kamera untuk mengambil foto di booth.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>POV Studio mengakses galeri untuk memilih foto pendukung.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'frame_sticker_screen.dart';
+import 'settings_screen.dart';
 
 class WelcomeLogoScreen extends StatelessWidget {
   const WelcomeLogoScreen({super.key});
@@ -13,10 +14,13 @@ class WelcomeLogoScreen extends StatelessWidget {
           decoration: const BoxDecoration(gradient: LinearGradient(colors: [Color(0xFF1A0B2E), Color(0xFF6A1FB8)], begin: Alignment.topCenter, end: Alignment.bottomCenter)),
           child: Center(
             child: Column(mainAxisSize: MainAxisSize.min, children: [
-              Container(
-                width: 140, height: 140,
-                decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 20)]),
-                child: const Icon(Icons.camera_alt_rounded, size: 72, color: Color(0xFF6A1FB8)),
+              GestureDetector(
+                onLongPress: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SettingsScreen())),
+                child: Container(
+                  width: 140, height: 140,
+                  decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 20)]),
+                  child: const Icon(Icons.camera_alt_rounded, size: 72, color: Color(0xFF6A1FB8)),
+                ),
               ),
               const SizedBox(height: 24),
               const Text('POV STUDIO', style: TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold, letterSpacing: 4)),

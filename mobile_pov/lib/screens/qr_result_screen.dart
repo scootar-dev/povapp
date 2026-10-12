@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:qr_flutter/qr_flutter.dart';
-import '../config.dart';
 import '../state/session_state.dart';
 import 'welcome_logo_screen.dart';
 
@@ -12,7 +11,8 @@ class QrResultScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final s = ref.watch(mobileSessionProvider);
-    final qrUrl = '${AppConfig.baseUrl}/api/download/${s.sessionCode}';
+    final baseUrl = ref.watch(baseUrlProvider).valueOrNull ?? '';
+    final qrUrl = '$baseUrl/api/download/${s.sessionCode}';
     // juga url storage langsung bisa dipakai, tapi QR pakai /download agar public
     return Scaffold(
       appBar: AppBar(title: const Text('Cetak & Unduh'), automaticallyImplyLeading: false),

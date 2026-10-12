@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../core/storage.dart';
 import '../models/frame_model.dart';
 import '../models/sticker_model.dart';
 import '../services/api_service.dart';
@@ -119,3 +120,7 @@ final framesProvider = FutureProvider<List<FrameModel>>((ref) async {
   final res = await ApiService().getFrames();
   return (res.data['data'] as List).map((f) => FrameModel.fromJson(f)).toList();
 });
+
+/// Base URL runtime (berubah saat disimpan lewat Pengaturan) — untuk membangun
+/// URL file storage & link download.
+final baseUrlProvider = FutureProvider<String>((ref) => MobileStorage.getBaseUrl());

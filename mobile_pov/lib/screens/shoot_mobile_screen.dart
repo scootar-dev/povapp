@@ -1,9 +1,15 @@
+import 'dart:io';
 import 'package:camera/camera.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import '../state/session_state.dart';
 import 'preview_select_screen.dart';
+
+/// true di Windows/Linux/macOS — package `camera` tidak mendukung desktop,
+/// jadi fallback ke pemilihan foto dari galeri (file dialog).
+bool get _isDesktop => !kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS);
 
 class ShootMobileScreen extends ConsumerStatefulWidget {
   const ShootMobileScreen({super.key});
@@ -23,6 +29,11 @@ class _ShootMobileScreenState extends ConsumerState<ShootMobileScreen> {
   void initState() { super.initState(); _init(); }
 
   Future<void> _init() async {
+    if (_isDesktop) {
+      if (mounted) setState(() => _status = 'Mode desktop: pilih foto dari galeri');
+      _burst();
+      return;
+    }
     try {
       final cams = await availableCameras();
       if (cams.isEmpty) throw Exception('No camera');
@@ -33,6 +44,7 @@ class _ShootMobileScreenState extends ConsumerState<ShootMobileScreen> {
       _burst();
     } catch (e) {
       if (mounted) setState(()=>_status='Kamera error: $e — pakai galeri');
+      _burst();
     }
   }
 
@@ -85,7 +97,9 @@ class _ShootMobileScreenState extends ConsumerState<ShootMobileScreen> {
     return Scaffold(
       backgroundColor: Colors.black,
       body: Stack(fit: StackFit.expand, children: [
-        if (_ready && _ctrl!=null) CameraPreview(_ctrl!) else const Center(child: CircularProgressIndicator()),
+        if (_isDesktop)
+          Center(child: Column(mainAxisSize: MainAxisSize.min, children: [const Icon(Icons.photo_library, size: 56, color: Colors.white54), const SizedBox(height: 12), Text(_status, style: const TextStyle(color: Colors.white70))]))
+        else if (_ready && _ctrl!=null) CameraPreview(_ctrl!) else const Center(child: CircularProgressIndicator()),
         Positioned(top: 40, left: 0, right: 0, child: Center(child: Container(padding: const EdgeInsets.symmetric(horizontal:12, vertical:6), decoration: BoxDecoration(color: Colors.black54, borderRadius: BorderRadius.circular(20)), child: Text(_status, style: const TextStyle(color: Colors.white))))),
         Center(child: _countdown>0 ? Text('$_countdown', style: const TextStyle(color: Colors.white, fontSize: 120, fontWeight: FontWeight.bold, shadows: [Shadow(blurRadius:20, color: Colors.black)])) : const SizedBox()),
         Positioned(bottom: 30, left: 16, right: 16, child: Column(children: [

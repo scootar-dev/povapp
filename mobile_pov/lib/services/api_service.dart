@@ -1,27 +1,100 @@
 import 'package:dio/dio.dart';
+
 import '../config.dart';
+import '../core/storage.dart';
 
+/// Wrapper Dio untuk endpoint /api/kiosk/* pada app customer (mobile_pov).
+/// Base URL + studio token dibaca runtime dari [MobileStorage] setiap request,
+/// sehingga bisa diubah lewat layar Pengaturan tanpa rebuild.
 class ApiService {
-  final Dio _dio = Dio(BaseOptions(baseUrl: AppConfig.baseUrl, connectTimeout: const Duration(seconds: 10), receiveTimeout: const Duration(seconds: 30), headers: {'Accept': 'application/json'}));
-  // kiosk token dari env atau bisa diisi via settings (untuk demo pakai hardcode fallback)
-  String get _token => const String.fromEnvironment('STUDIO_TOKEN', defaultValue: 'kiosk-token-123');
-
-  Dio get withAuth {
-    _dio.options.headers['Authorization'] = 'Bearer $_token';
-    return _dio;
+  ApiService()
+      : _dio = Dio(BaseOptions(
+          connectTimeout: const Duration(seconds: 10),
+          receiveTimeout: const Duration(seconds: 30),
+          headers: {'Accept': 'application/json'},
+        )) {
+    _dio.interceptors.add(InterceptorsWrapper(
+      onRequest: (o, h) async {
+        o.baseUrl = await MobileStorage.getBaseUrl();
+        o.headers['Authorization'] = 'Bearer ${await MobileStorage.getToken()}';
+        return h.next(o);
+      },
+      onError: (e, h) async {
+        final shouldRetry = e.type == DioExceptionType.connectionTimeout ||
+            e.type == DioExceptionType.receiveTimeout ||
+            e.response?.statusCode == 502 ||
+            e.response?.statusCode == 503;
+        final alreadyRetried = e.requestOptions.extra['retried'] == true;
+        if (shouldRetry && !alreadyRetried) {
+          e.requestOptions.extra['retried'] = true;
+          await Future.delayed(const Duration(milliseconds: 800));
+          try {
+            final res = await _dio.fetch(e.requestOptions);
+            return h.resolve(res);
+          } catch (_) {}
+        }
+        return h.next(e);
+      },
+    ));
   }
 
-  Future<Response> getFrames() => withAuth.get('/api/kiosk/frames');
-  Future<Response> createSession({required int frameId}) => withAuth.post('/api/kiosk/sessions', data: {'frame_id': frameId});
-  Future<Response> updateStatus(int id, String s) => withAuth.patch('/api/kiosk/sessions/$id/status', data: {'status': s});
+  final Dio _dio;
+
+  String _msg(DioException e) {
+    if (e.type == DioExceptionType.connectionTimeout ||
+        e.type == DioExceptionType.receiveTimeout) {
+      return 'Koneksi timeout — cek jaringan / IP server.';
+    }
+    if (e.type == DioExceptionType.connectionError) {
+      return 'Tidak bisa terhubung ke server. Cek API Base URL di Pengaturan.';
+    }
+    final code = e.response?.statusCode;
+    final body = e.response?.data;
+    if (code == 401) return 'Token studio tidak valid — cek Studio Token di Pengaturan.';
+    if (code == 422) {
+      final m = body is Map ? (body['message'] ?? body['msg']) : null;
+      return m?.toString() ?? 'Validasi gagal (422).';
+    }
+    if (code == 404) return 'Data tidak ditemukan (404).';
+    if (body is Map && body['message'] != null) return body['message'].toString();
+    return e.message ?? 'Terjadi kesalahan jaringan.';
+  }
+
+  Future<Response> _guard(Future<Response> Function() fn) async {
+    try {
+      return await fn();
+    } on DioException catch (e) {
+      throw Exception(_msg(e));
+    }
+  }
+
+  Future<Response> getFrames() => _guard(() => _dio.get('/api/kiosk/frames'));
+  Future<Response> getFrameDetail(int id) => _guard(() => _dio.get('/api/kiosk/frames/$id'));
+  Future<Response> createSession({required int frameId}) =>
+      _guard(() => _dio.post('/api/kiosk/sessions', data: {'frame_id': frameId}));
+  Future<Response> updateStatus(int id, String s) =>
+      _guard(() => _dio.patch('/api/kiosk/sessions/$id/status', data: {'status': s}));
   Future<Response> uploadPhoto(int sid, int slot, String path) async {
-    final fd = FormData.fromMap({'slot_index': slot, 'photo': await MultipartFile.fromFile(path)});
-    return withAuth.post('/api/kiosk/sessions/$sid/photos', data: fd);
+    try {
+      final fd = FormData.fromMap({
+        'slot_index': slot,
+        'photo': await MultipartFile.fromFile(path),
+      });
+      return await _dio.post('/api/kiosk/sessions/$sid/photos', data: fd);
+    } on DioException catch (e) {
+      throw Exception(_msg(e));
+    }
   }
-  Future<Response> renderOutput(int sid) => withAuth.post('/api/kiosk/sessions/$sid/render');
-  Future<Response> getOutputs(int sid) => withAuth.get('/api/kiosk/sessions/$sid/outputs');
-  Future<Response> complete(int sid) => withAuth.post('/api/kiosk/sessions/$sid/complete');
+  Future<Response> renderOutput(int sid) => _guard(() => _dio.post('/api/kiosk/sessions/$sid/render'));
+  Future<Response> getOutputs(int sid) => _guard(() => _dio.get('/api/kiosk/sessions/$sid/outputs'));
+  Future<Response> complete(int sid) => _guard(() => _dio.post('/api/kiosk/sessions/$sid/complete'));
 
-  // public
-  Future<Response> fetchDownload(String code) => Dio(BaseOptions(baseUrl: AppConfig.baseUrl)).get('/api/download/$code');
+  // public — tanpa auth studio
+  Future<Response> fetchDownload(String code) async {
+    final base = await MobileStorage.getBaseUrl();
+    return _guard(() => Dio(BaseOptions(baseUrl: base)).get('/api/download/$code'));
+  }
 }
+
+/// Fallback kompatibilitas: ekspor konstanta config untuk UI.
+String get kDefaultBaseUrl => AppConfig.baseUrl;

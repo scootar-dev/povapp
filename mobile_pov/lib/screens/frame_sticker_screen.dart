@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../config.dart';
 import '../models/sticker_model.dart';
 import '../state/session_state.dart';
 import 'shoot_mobile_screen.dart';
@@ -20,6 +19,7 @@ class _FrameStickerScreenState extends ConsumerState<FrameStickerScreen> with Si
   @override
   Widget build(BuildContext context) {
     final framesAsync = ref.watch(framesProvider);
+    final baseUrl = ref.watch(baseUrlProvider).valueOrNull ?? '';
     final session = ref.watch(mobileSessionProvider);
     final selectedFrame = session.frame;
     final stickers = session.stickers;
@@ -63,7 +63,7 @@ class _FrameStickerScreenState extends ConsumerState<FrameStickerScreen> with Si
               // TEMPLATE TAB: grid frame dari admin
               framesAsync.when(
                 loading: ()=> const Center(child: CircularProgressIndicator()),
-                error: (e,_)=> Center(child: Column(mainAxisSize: MainAxisSize.min, children: [Text('Gagal: $e'), FilledButton(onPressed: ()=>ref.invalidate(framesProvider), child: Text('Retry'))])),
+                error: (e,_)=> Center(child: Column(mainAxisSize: MainAxisSize.min, children: [Text('Gagal: $e', textAlign: TextAlign.center), const SizedBox(height: 8), const Text('Cek URL & Token di Pengaturan (tahan logo)', style: TextStyle(fontSize: 11, color: Colors.black54)), const SizedBox(height: 8), FilledButton(onPressed: ()=>ref.invalidate(framesProvider), child: const Text('Retry'))])),
                 data: (frames) => GridView.builder(
                   padding: const EdgeInsets.all(12),
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, childAspectRatio: 0.85, crossAxisSpacing: 12, mainAxisSpacing: 12),
@@ -76,7 +76,7 @@ class _FrameStickerScreenState extends ConsumerState<FrameStickerScreen> with Si
                       child: Container(
                         decoration: BoxDecoration(border: Border.all(color: sel? Colors.deepPurple: Colors.grey.shade300, width: sel?3:1), borderRadius: BorderRadius.circular(12)),
                         child: Column(children: [
-                          Expanded(child: f.thumbnailPath != null ? Image.network('${AppConfig.baseUrl.replaceFirst('/api','')}/storage/${f.thumbnailPath}', fit: BoxFit.cover, width: double.infinity, errorBuilder: (_,_,_)=> const Icon(Icons.image)) : const Icon(Icons.filter_frames, size: 48)),
+                          Expanded(child: f.thumbnailPath != null ? Image.network('$baseUrl/storage/${f.thumbnailPath}', fit: BoxFit.cover, width: double.infinity, errorBuilder: (_,_,_)=> const Icon(Icons.image)) : const Icon(Icons.filter_frames, size: 48)),
                           Padding(padding: const EdgeInsets.all(8), child: Text(f.name, style: TextStyle(fontWeight: sel?FontWeight.bold:FontWeight.normal))),
                           Text('${f.photoCount} foto', style: const TextStyle(fontSize: 11)),
                           if (sel) const Icon(Icons.check_circle, color: Colors.deepPurple, size: 16),
@@ -91,7 +91,7 @@ class _FrameStickerScreenState extends ConsumerState<FrameStickerScreen> with Si
                 Expanded(
                   child: framesAsync.when(
                     loading: ()=> const Center(child: CircularProgressIndicator()),
-                    error: (e,_)=> Center(child: Text('Error $e')),
+                    error: (e,_)=> Center(child: Column(mainAxisSize: MainAxisSize.min, children: [Text('Error $e', textAlign: TextAlign.center), const SizedBox(height: 8), FilledButton(onPressed: ()=>ref.invalidate(framesProvider), child: const Text('Retry'))])),
                     data: (frames) => GridView.builder(
                       padding: const EdgeInsets.all(12),
                       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, childAspectRatio: 0.75, crossAxisSpacing: 8, mainAxisSpacing: 8),
