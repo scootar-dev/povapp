@@ -914,6 +914,7 @@
                         </form>
 
 
+                        @if (Route::has('google.login'))
                         <!-- DIVIDER -->
 
                         <div class="flex items-center gap-4 my-6">
@@ -972,6 +973,7 @@
                             Daftar dengan Google
 
                         </a>
+                        @endif
 
 
                         <!-- LOGIN -->

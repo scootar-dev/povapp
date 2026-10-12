@@ -22,9 +22,11 @@ return new class extends Migration
 
             $table->text('deskripsi')->nullable();
 
+            $table->string('tag')->nullable();
+
             $table->integer('penggunaan')->default(0);
 
-            $table->boolean('status')->default(true);
+            $table->string('status')->default('Aktif');
 
             $table->timestamps();
         });

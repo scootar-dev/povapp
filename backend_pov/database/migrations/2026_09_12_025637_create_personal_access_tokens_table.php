@@ -11,16 +11,9 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('personal_access_tokens', function (Blueprint $table) {
-            $table->id();
-            $table->morphs('tokenable');
-            $table->text('name');
-            $table->string('token', 64)->unique();
-            $table->text('abilities')->nullable();
-            $table->timestamp('last_used_at')->nullable();
-            $table->timestamp('expires_at')->nullable()->index();
-            $table->timestamps();
-        });
+        // This migration is a duplicate of 2019_12_14_000001_create_personal_access_tokens_table.
+        // Keep it as a no-op so existing databases can mark it as migrated without trying
+        // to create the Sanctum table twice.
     }
 
     /**
@@ -28,6 +21,7 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('personal_access_tokens');
+        // No-op: the real Sanctum table is managed by
+        // 2019_12_14_000001_create_personal_access_tokens_table.
     }
 };

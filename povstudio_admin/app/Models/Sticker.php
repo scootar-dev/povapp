@@ -13,5 +13,6 @@ class Sticker extends Model
         'deskripsi',
         'tag',
         'status',
+        'penggunaan',
     ];
 }

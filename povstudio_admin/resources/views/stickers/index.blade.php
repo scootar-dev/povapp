@@ -385,11 +385,11 @@
 
             <div class="stat-text">
 
-                <div class="stat-number">
+                    {{ $popularSticker?->nama ?? '-' }}
                     {{ $totalStickers ?? 0 }}
                 </div>
 
-                <div class="stat-title">
+                    Terpopuler
                     Total Stiker
                 </div>
 
@@ -434,7 +434,7 @@
             <div class="stat-text">
 
                 <div class="stat-number">
-                    {{ $popularSticker ?? 0 }}
+                    {{ $popularSticker?->nama ?? '-' }}
                 </div>
 
                 <div class="stat-title">
