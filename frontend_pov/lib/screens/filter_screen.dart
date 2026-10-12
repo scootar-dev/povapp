@@ -20,6 +20,12 @@ class _FilterScreenState extends ConsumerState<FilterScreen> {
   bool _saving = false;
 
   @override
+  void initState() {
+    super.initState();
+    _selected = ref.read(sessionProvider).selectedFilter;
+  }
+
+  @override
   Widget build(BuildContext context) {
     final session = ref.watch(sessionProvider);
     final photos = session.photos;

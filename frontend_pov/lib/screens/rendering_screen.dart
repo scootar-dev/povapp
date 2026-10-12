@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../state/session_state.dart';
-import 'print_share_screen.dart';
+import 'qr_result_screen.dart';
 
 class RenderingScreen extends ConsumerStatefulWidget {
   const RenderingScreen({super.key});
@@ -23,7 +23,7 @@ class _RenderingScreenState extends ConsumerState<RenderingScreen> {
     try {
       await ref.read(sessionProvider.notifier).renderAndWaitOutput(onTick: (i){ if(mounted) setState(()=>_attempt=i); if(_cancelled) throw Exception('Dibatalkan'); });
       if (_cancelled) return;
-      if (mounted) Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const PrintShareScreen()));
+      if (mounted) Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const QrResultScreen()));
     } catch (e) {
       if (_cancelled) return;
       if (mounted) setState(() => _error = e.toString());

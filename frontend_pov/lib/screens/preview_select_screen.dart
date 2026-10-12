@@ -4,8 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/app_config.dart';
 import '../core/responsive.dart';
 import '../state/session_state.dart';
+import 'filter_screen.dart';
 import 'shoot_screen.dart';
-import 'qr_result_screen.dart';
 
 class PreviewSelectScreen extends ConsumerStatefulWidget {
   const PreviewSelectScreen({super.key});
@@ -14,26 +14,16 @@ class PreviewSelectScreen extends ConsumerStatefulWidget {
 }
 
 class _PreviewSelectScreenState extends ConsumerState<PreviewSelectScreen> {
-  bool _rendering = false;
-
   Future<void> _next() async {
     final s = ref.read(sessionProvider);
+    if (s.photos.isEmpty) return;
     // jika belum pilih, pilih semua default
     if (s.selectedIndices.isEmpty) {
       for (int i = 0; i < s.photos.length; i++) {
         ref.read(sessionProvider.notifier).toggleSelect(i);
       }
     }
-    setState(() => _rendering = true);
-    try {
-      // stickers sudah di state, tapi backend belum pakai — untuk MVP preview saja
-      await ref.read(sessionProvider.notifier).renderAndWaitOutput();
-      if (mounted) Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const QrResultScreen()));
-    } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Gagal render: $e')));
-    } finally {
-      if (mounted) setState(() => _rendering = false);
-    }
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => const FilterScreen()));
   }
 
   Future<void> _retake(int photoId) async {
@@ -91,7 +81,7 @@ class _PreviewSelectScreenState extends ConsumerState<PreviewSelectScreen> {
         Padding(
           padding: EdgeInsets.all(Responsive.padding(context)),
           child: Column(children: [
-            SizedBox(width: double.infinity, child: FilledButton(onPressed: _rendering ? null : _next, child: Padding(padding: const EdgeInsets.symmetric(vertical: 14), child: _rendering ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : Text(isMobile ? 'Cetak & Buat QR' : 'Lanjut Cetak & QR')))),
+            SizedBox(width: double.infinity, child: FilledButton(onPressed: _next, child: Padding(padding: const EdgeInsets.symmetric(vertical: 14), child: Text(isMobile ? 'Lanjut Pilih Filter' : 'Lanjut ke Pilih Filter')))),
             const SizedBox(height: 6),
             Text('Tap foto untuk pilih/Batal pilih • Stiker: ${s.stickers.map((e) => e.sticker.emoji).join(" ")}', style: const TextStyle(fontSize: 11, color: Colors.white54), textAlign: TextAlign.center),
           ]),
