@@ -15,6 +15,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _loading = true;
   bool _testing = false;
   String? _testResult;
+  bool _testOk = false;
 
   @override
   void initState() { super.initState(); _load(); }
@@ -29,19 +30,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await MobileStorage.saveBaseUrl(_urlCtrl.text.trim());
     await MobileStorage.saveToken(_tokenCtrl.text.trim());
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Tersimpan — refresh layar frame untuk memuat ulang')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Tersimpan — buka MULAI untuk memuat ulang frame')),
+      );
     }
+  }
+
+  Future<void> _reset() async {
+    await MobileStorage.resetBaseUrl();
+    await MobileStorage.resetToken();
+    await _load();
   }
 
   Future<void> _test() async {
     await _save();
-    setState(() { _testing = true; _testResult = null; });
+    setState(() { _testing = true; _testResult = null; _testOk = false; });
     try {
       final res = await ApiService().getFrames();
       final frames = res.data['data'] as List;
-      setState(() => _testResult = 'Berhasil: ${frames.length} frame dari server.');
+      setState(() { _testOk = true; _testResult = 'Berhasil: ${frames.length} frame dari server.'; });
     } catch (e) {
-      setState(() => _testResult = 'Gagal: $e');
+      setState(() { _testOk = false; _testResult = 'Gagal: $e'; });
     } finally {
       if (mounted) setState(() => _testing = false);
     }
@@ -59,16 +68,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
           : ListView(
               padding: const EdgeInsets.all(16),
               children: [
-                const Text('Konfigurasi disimpan lokal (tanpa rebuild).', style: TextStyle(fontSize: 12, color: Colors.black54)),
+                Text('Konfigurasi disimpan lokal (tanpa rebuild). Koneksi via HTTP ke backend.',
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
                 const SizedBox(height: 16),
                 TextField(
                   controller: _urlCtrl,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: 'API Base URL',
-                    hintText: 'http://10.0.2.2:8000',
-                    helperText: 'Tanpa /api di belakang',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.link),
+                    hintText: MobileStorage.defaultBaseUrl,
+                    helperText: 'Tanpa /api. Default (kosongkan & reset): ${MobileStorage.defaultBaseUrl}',
+                    border: const OutlineInputBorder(),
+                    prefixIcon: const Icon(Icons.link),
                   ),
                   keyboardType: TextInputType.url,
                 ),
@@ -77,31 +87,61 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   controller: _tokenCtrl,
                   decoration: const InputDecoration(
                     labelText: 'Studio Token (device_token)',
+                    helperText: 'Ambil dari server: php artisan studio:token NamaStudio',
                     border: OutlineInputBorder(),
                     prefixIcon: Icon(Icons.key),
                   ),
-                  maxLines: 2,
-                  minLines: 1,
+                  style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
                 ),
                 const SizedBox(height: 16),
-                SizedBox(width: double.infinity, child: FilledButton.icon(onPressed: _save, icon: const Icon(Icons.save), label: const Text('Simpan'))),
+                Row(children: [
+                  Expanded(
+                    child: FilledButton.icon(
+                      onPressed: _save,
+                      icon: const Icon(Icons.save),
+                      label: const Text('Simpan'),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  OutlinedButton(onPressed: _reset, child: const Text('Reset')),
+                ]),
                 const SizedBox(height: 8),
-                SizedBox(width: double.infinity, child: OutlinedButton.icon(onPressed: _testing ? null : _test, icon: _testing ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.wifi_tethering), label: const Text('Tes Koneksi'))),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: _testing ? null : _test,
+                    icon: _testing
+                        ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2))
+                        : const Icon(Icons.wifi_tethering),
+                    label: const Text('Tes Koneksi'),
+                  ),
+                ),
                 if (_testResult != null)
                   Padding(
                     padding: const EdgeInsets.only(top: 12),
-                    child: Text(_testResult!, style: const TextStyle(fontWeight: FontWeight.w600), textAlign: TextAlign.center),
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: _testOk ? Colors.green.shade50 : Colors.red.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: _testOk ? Colors.green.shade300 : Colors.red.shade300),
+                      ),
+                      child: Text(
+                        _testResult!,
+                        style: TextStyle(fontWeight: FontWeight.w600, color: _testOk ? Colors.green.shade800 : Colors.red.shade700),
+                      ),
+                    ),
                   ),
                 const Divider(height: 32),
                 const ListTile(
                   leading: Icon(Icons.info_outline),
                   title: Text('Cara dapat token'),
-                  subtitle: Text('Dari backend: php artisan tinker → Studio::pluck("device_token")'),
+                  subtitle: Text('Jalankan di folder backend: php artisan studio:token NamaStudio — token akan dicetak sekali.'),
                 ),
                 const ListTile(
                   leading: Icon(Icons.phone_android),
-                  title: Text('Uji di device'),
-                  subtitle: Text('Gunakan IP laptop (mis. http://192.168.1.5:8000) jika HP dan laptop di jaringan berbeda. Emulator Android pakai 10.0.2.2:8000.'),
+                  title: Text('Base URL yang benar'),
+                  subtitle: Text('Web/Desktop/iOS sim: http://127.0.0.1:8001 • Android emulator: http://10.0.2.2:8001 • HP asli: http://IP-laptop:8001'),
                 ),
               ],
             ),
