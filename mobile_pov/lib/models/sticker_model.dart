@@ -11,6 +11,12 @@ class StickerModel {
         emoji: j['emoji'] ?? '',
         assetPath: j['asset_path'],
       );
+
+  String? getAssetUrl(String baseUrl) {
+    if (assetPath == null) return null;
+    if (assetPath!.startsWith('http')) return assetPath;
+    return '$baseUrl/storage/$assetPath';
+  }
 }
 
 const kStickers = [

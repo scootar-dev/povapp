@@ -121,6 +121,11 @@ final framesProvider = FutureProvider<List<FrameModel>>((ref) async {
   return (res.data['data'] as List).map((f) => FrameModel.fromJson(f)).toList();
 });
 
+final stickersProvider = FutureProvider<List<StickerModel>>((ref) async {
+  final res = await ApiService().getStickers();
+  return (res.data['data'] as List).map((s) => StickerModel.fromJson(s)).toList();
+});
+
 /// Base URL runtime (berubah saat disimpan lewat Pengaturan) — untuk membangun
 /// URL file storage & link download.
 final baseUrlProvider = FutureProvider<String>((ref) => MobileStorage.getBaseUrl());

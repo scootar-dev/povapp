@@ -25,4 +25,16 @@ class FrameModel {
         printSize: j['print_size'] ?? '4r',
         slots: (j['slots'] as List<dynamic>? ?? []).map((s) => FrameSlot.fromJson(s)).toList(),
       );
+
+  String? getThumbnailUrl(String baseUrl) {
+    if (thumbnailPath == null) return null;
+    if (thumbnailPath!.startsWith('http')) return thumbnailPath;
+    return '$baseUrl/storage/$thumbnailPath';
+  }
+
+  String? getOverlayUrl(String baseUrl) {
+    if (overlayPath == null) return null;
+    if (overlayPath!.startsWith('http')) return overlayPath;
+    return '$baseUrl/storage/$overlayPath';
+  }
 }

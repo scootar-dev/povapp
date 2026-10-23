@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/sticker_model.dart';
+import '../models/frame_model.dart';
 import '../state/session_state.dart';
 import 'shoot_mobile_screen.dart';
 
@@ -19,6 +20,7 @@ class _FrameStickerScreenState extends ConsumerState<FrameStickerScreen> with Si
   @override
   Widget build(BuildContext context) {
     final framesAsync = ref.watch(framesProvider);
+    final stickersAsync = ref.watch(stickersProvider);
     final baseUrl = ref.watch(baseUrlProvider).valueOrNull ?? '';
     final session = ref.watch(mobileSessionProvider);
     final selectedFrame = session.frame;
@@ -76,7 +78,7 @@ class _FrameStickerScreenState extends ConsumerState<FrameStickerScreen> with Si
                       child: Container(
                         decoration: BoxDecoration(border: Border.all(color: sel? Colors.deepPurple: Colors.grey.shade300, width: sel?3:1), borderRadius: BorderRadius.circular(12)),
                         child: Column(children: [
-                          Expanded(child: f.thumbnailPath != null ? Image.network('$baseUrl/storage/${f.thumbnailPath}', fit: BoxFit.cover, width: double.infinity, errorBuilder: (_,_,_)=> const Icon(Icons.image)) : const Icon(Icons.filter_frames, size: 48)),
+                          Expanded(child: f.thumbnailPath != null ? Image.network(f.getThumbnailUrl(baseUrl)!, fit: BoxFit.cover, width: double.infinity, errorBuilder: (_,_,_)=> const Icon(Icons.image)) : const Icon(Icons.filter_frames, size: 48)),
                           Padding(padding: const EdgeInsets.all(8), child: Text(f.name, style: TextStyle(fontWeight: sel?FontWeight.bold:FontWeight.normal))),
                           Text('${f.photoCount} foto', style: const TextStyle(fontSize: 11)),
                           if (sel) const Icon(Icons.check_circle, color: Colors.deepPurple, size: 16),
@@ -108,23 +110,32 @@ class _FrameStickerScreenState extends ConsumerState<FrameStickerScreen> with Si
                 const Padding(padding: EdgeInsets.symmetric(horizontal: 12), child: Align(alignment: Alignment.centerLeft, child: Text('Pilih Stiker (tap untuk tambah, drag di preview untuk pindah)', style: TextStyle(fontSize: 11, color: Colors.black54)))),
                 SizedBox(
                   height: 80,
-                  child: GridView.builder(
-                    scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.all(8),
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 1, mainAxisSpacing: 8),
-                    itemCount: kStickers.length,
-                    itemBuilder: (_, i) {
-                      final s = kStickers[i];
-                      final chosen = stickers.any((p)=>p.sticker.id==s.id);
-                      return GestureDetector(
-                        onTap: ()=>ref.read(mobileSessionProvider.notifier).toggleSticker(s),
-                        child: Container(
-                          width: 60,
-                          decoration: BoxDecoration(color: chosen? Colors.deepPurple.withValues(alpha: 0.15): Colors.grey.shade100, border: Border.all(color: chosen? Colors.deepPurple: Colors.grey.shade300), borderRadius: BorderRadius.circular(8)),
-                          child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Text(s.emoji, style: const TextStyle(fontSize: 28)), Text(s.name, style: const TextStyle(fontSize: 9))]),
-                        ),
-                      );
-                    },
+                  child: stickersAsync.when(
+                    loading: () => const Center(child: CircularProgressIndicator()),
+                    error: (e, _) => Center(child: Text('Gagal load stiker: $e')),
+                    data: (apiStickers) => GridView.builder(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.all(8),
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 1, mainAxisSpacing: 8),
+                      itemCount: apiStickers.length,
+                      itemBuilder: (_, i) {
+                        final s = apiStickers[i];
+                        final chosen = stickers.any((p) => p.sticker.id == s.id);
+                        return GestureDetector(
+                          onTap: () => ref.read(mobileSessionProvider.notifier).toggleSticker(s),
+                          child: Container(
+                            width: 60,
+                            decoration: BoxDecoration(color: chosen ? Colors.deepPurple.withValues(alpha: 0.15) : Colors.grey.shade100, border: Border.all(color: chosen ? Colors.deepPurple : Colors.grey.shade300), borderRadius: BorderRadius.circular(8)),
+                            child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                              s.assetPath != null
+                                  ? Image.network(s.getAssetUrl(baseUrl)!, width: 28, height: 28, errorBuilder: (_, _, _) => Text(s.emoji, style: const TextStyle(fontSize: 28)))
+                                  : Text(s.emoji, style: const TextStyle(fontSize: 28)),
+                              Text(s.name, style: const TextStyle(fontSize: 9)),
+                            ]),
+                          ),
+                        );
+                      },
+                    ),
                   ),
                 ),
               ]),
