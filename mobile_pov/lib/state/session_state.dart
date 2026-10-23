@@ -117,12 +117,12 @@ class MobileSessionNotifier extends StateNotifier<MobileSessionData> {
 final mobileSessionProvider = StateNotifierProvider<MobileSessionNotifier, MobileSessionData>((ref) => MobileSessionNotifier());
 
 final framesProvider = FutureProvider<List<FrameModel>>((ref) async {
-  final res = await ApiService().getFrames();
+  final res = await ApiService().getFramesPublic();
   return (res.data['data'] as List).map((f) => FrameModel.fromJson(f)).toList();
 });
 
 final stickersProvider = FutureProvider<List<StickerModel>>((ref) async {
-  final res = await ApiService().getStickers();
+  final res = await ApiService().getStickersPublic();
   return (res.data['data'] as List).map((s) => StickerModel.fromJson(s)).toList();
 });
 

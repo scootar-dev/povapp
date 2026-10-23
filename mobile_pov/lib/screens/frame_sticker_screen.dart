@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../models/sticker_model.dart';
-import '../models/frame_model.dart';
 import '../state/session_state.dart';
 import 'shoot_mobile_screen.dart';
 
