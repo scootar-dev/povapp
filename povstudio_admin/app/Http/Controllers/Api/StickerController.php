@@ -17,7 +17,7 @@ class StickerController extends Controller
                     'id' => (string) $sticker->id,
                     'name' => $sticker->name,
                     'emoji' => $sticker->name,
-                    'asset_path' => $sticker->asset_path ? asset('storage/' . $sticker->asset_path) : null,
+                    'asset_path' => $sticker->asset_path,
                 ];
             });
 
@@ -31,7 +31,7 @@ class StickerController extends Controller
                 'id' => (string) $sticker->id,
                 'name' => $sticker->nama,
                 'emoji' => $sticker->nama,
-                'asset_path' => $sticker->gambar ? asset('storage/' . $sticker->gambar) : null,
+                'asset_path' => $sticker->gambar,
             ]
         ]);
     }

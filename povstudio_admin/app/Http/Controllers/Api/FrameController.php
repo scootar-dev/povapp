@@ -18,8 +18,8 @@ class FrameController extends Controller
                     'id' => $frame->id,
                     'name' => $frame->name,
                     'category' => $frame->category,
-                    'thumbnail_path' => $frame->thumbnail_path ? asset('storage/' . $frame->thumbnail_path) : null,
-                    'overlay_path' => $frame->overlay_path ? asset('storage/' . $frame->overlay_path) : null,
+                    'thumbnail_path' => $frame->thumbnail_path,
+                    'overlay_path' => $frame->overlay_path,
                     'photo_count' => 1,
                     'print_size' => '4r',
                     'slots' => [
@@ -45,8 +45,8 @@ class FrameController extends Controller
                 'id' => $frame->id,
                 'name' => $frame->nama,
                 'category' => $frame->kategori,
-                'thumbnail_path' => $frame->gambar ? asset('storage/' . $frame->gambar) : null,
-                'overlay_path' => $frame->gambar ? asset('storage/' . $frame->gambar) : null,
+                'thumbnail_path' => $frame->gambar,
+                'overlay_path' => $frame->gambar,
                 'photo_count' => 1,
                 'print_size' => '4r',
                 'slots' => [
