@@ -1,9 +1,16 @@
 class StickerModel {
   final String id;
   final String name;
-  final String emoji; // untuk MVP pakai emoji, nanti ganti asset PNG
+  final String emoji;
   final String? assetPath;
   const StickerModel({required this.id, required this.name, required this.emoji, this.assetPath});
+
+  factory StickerModel.fromJson(Map<String, dynamic> j) => StickerModel(
+        id: j['id']?.toString() ?? '',
+        name: j['name'] ?? '',
+        emoji: j['emoji'] ?? '',
+        assetPath: j['asset_path'],
+      );
 }
 
 const kStickers = [

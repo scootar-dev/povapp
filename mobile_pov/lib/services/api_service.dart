@@ -70,6 +70,7 @@ class ApiService {
 
   Future<Response> getFrames() => _guard(() => _dio.get('/api/kiosk/frames'));
   Future<Response> getFrameDetail(int id) => _guard(() => _dio.get('/api/kiosk/frames/$id'));
+  Future<Response> getStickers() => _guard(() => _dio.get('/api/kiosk/stickers'));
   Future<Response> createSession({required int frameId}) =>
       _guard(() => _dio.post('/api/kiosk/sessions', data: {'frame_id': frameId}));
   Future<Response> updateStatus(int id, String s) =>

@@ -5,7 +5,7 @@ class AppConfig {
   /// `MobileStorage.defaultBaseUrl`; nilai ini hanya fallback dari dart-define.
   static const String baseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'http://127.0.0.1:8001',
+    defaultValue: 'http://127.0.0.1:8000',
   );
 
   /// Token perangkat (device_token) hasil registrasi studio di Admin Panel.
