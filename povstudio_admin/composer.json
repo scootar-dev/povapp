@@ -9,9 +9,12 @@
         "php": "^8.2",
         "intervention/image": "*",
         "laravel/framework": "^12.0",
+        "laravel/octane": "2.22",
         "laravel/socialite": "^5.31",
         "laravel/tinker": "^2.10.1",
-        "simplesoftwareio/simple-qrcode": "*"
+        "simplesoftwareio/simple-qrcode": "*",
+        "spiral/roadrunner-cli": "*",
+        "spiral/roadrunner-http": "*"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",
