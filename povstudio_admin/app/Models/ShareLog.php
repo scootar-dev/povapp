@@ -6,21 +6,21 @@ use Illuminate\Database\Eloquent\Model;
 
 class ShareLog extends Model
 {
-    protected \ = [
+    protected $fillable = [
         'session_id', 'output_id', 'method', 'shared_with', 'shared_at',
     ];
 
-    protected \ = [
+    protected $casts = [
         'shared_at' => 'datetime',
     ];
 
     public function session()
     {
-        return \->belongsTo(Session::class);
+        return $this->belongsTo(Session::class);
     }
 
     public function output()
     {
-        return \->belongsTo(Output::class);
+        return $this->belongsTo(Output::class);
     }
 }

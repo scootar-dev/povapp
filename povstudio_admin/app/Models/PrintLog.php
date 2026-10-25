@@ -6,17 +6,17 @@ use Illuminate\Database\Eloquent\Model;
 
 class PrintLog extends Model
 {
-    protected \ = [
+    protected $fillable = [
         'session_id', 'output_id', 'printer', 'status', 'copies', 'error_message',
     ];
 
     public function session()
     {
-        return \->belongsTo(Session::class);
+        return $this->belongsTo(Session::class);
     }
 
     public function output()
     {
-        return \->belongsTo(Output::class);
+        return $this->belongsTo(Output::class);
     }
 }

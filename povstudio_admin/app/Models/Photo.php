@@ -6,16 +6,16 @@ use Illuminate\Database\Eloquent\Model;
 
 class Photo extends Model
 {
-    protected \ = [
+    protected $fillable = [
         'session_id', 'slot_index', 'file_path', 'is_selected', 'attempt_number',
     ];
 
-    protected \ = [
+    protected $casts = [
         'is_selected' => 'boolean',
     ];
 
     public function session()
     {
-        return \->belongsTo(Session::class);
+        return $this->belongsTo(Session::class);
     }
 }

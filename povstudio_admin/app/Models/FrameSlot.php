@@ -6,16 +6,16 @@ use Illuminate\Database\Eloquent\Model;
 
 class FrameSlot extends Model
 {
-    protected \ = [
+    protected $fillable = [
         'frame_id', 'slot_index', 'x', 'y', 'width', 'height', 'rotation',
     ];
 
-    protected \ = [
+    protected $casts = [
         'rotation' => 'decimal:2',
     ];
 
     public function frame()
     {
-        return \->belongsTo(Frame::class);
+        return $this->belongsTo(Frame::class);
     }
 }

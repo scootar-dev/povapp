@@ -6,15 +6,15 @@ use Illuminate\Database\Eloquent\Model;
 
 class Output extends Model
 {
-    protected \ = ['session_id', 'type', 'file_path', 'dpi'];
+    protected $fillable = ['session_id', 'type', 'file_path', 'dpi'];
 
     public function session()
     {
-        return \->belongsTo(Session::class);
+        return $this->belongsTo(Session::class);
     }
 
     public function printLogs()
     {
-        return \->hasMany(PrintLog::class);
+        return $this->hasMany(PrintLog::class);
     }
 }
