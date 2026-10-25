@@ -11,7 +11,7 @@ class Session extends Model
     use HasFactory;
 
     protected $fillable = [
-        'session_code', 'user_id', 'frame_id', 'filter_applied',
+        'session_code', 'frame_id', 'filter_applied',
         'retake_quota', 'retake_used', 'status', 'started_at', 'completed_at',
     ];
 
@@ -26,11 +26,6 @@ class Session extends Model
             $session->session_code = $session->session_code ?? (string) Str::uuid();
             $session->started_at = $session->started_at ?? now();
         });
-    }
-
-    public function user()
-    {
-        return $this->belongsTo(User::class);
     }
 
     public function frame()

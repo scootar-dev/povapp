@@ -12,8 +12,6 @@ class PhotoController extends Controller
 {
     public function store(Request $request, Session $session)
     {
-        $this->ensureUserScope($request, $session);
-
         $data = $request->validate([
             'slot_index' => 'required|integer|min:0',
             'photo' => 'required|image|max:20480',
@@ -52,8 +50,6 @@ class PhotoController extends Controller
 
     public function index(Request $request, Session $session)
     {
-        $this->ensureUserScope($request, $session);
-
         $photos = $session->photos()->where('is_selected', true)->orderBy('slot_index')->get();
 
         return response()->json(['data' => $photos]);
@@ -61,8 +57,6 @@ class PhotoController extends Controller
 
     public function retake(Request $request, Session $session, Photo $photo)
     {
-        $this->ensureUserScope($request, $session);
-
         if ((int) $photo->session_id !== (int) $session->id) {
             return response()->json(['message' => 'Foto tidak termasuk sesi ini.'], 422);
         }
@@ -81,13 +75,5 @@ class PhotoController extends Controller
                 'retake_remaining' => $session->fresh()->retakeRemaining(),
             ],
         ]);
-    }
-
-    private function ensureUserScope(Request $request, Session $session): void
-    {
-        $userId = $request->attributes->get('user_id');
-        if ((int) $session->user_id !== (int) $userId) {
-            abort(403, 'Sesi tidak termasuk user ini.');
-        }
     }
 }

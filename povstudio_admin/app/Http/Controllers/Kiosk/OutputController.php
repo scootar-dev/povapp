@@ -11,8 +11,6 @@ class OutputController extends Controller
 {
     public function render(Request $request, Session $session)
     {
-        $this->ensureUserScope($request, $session);
-
         $frame = $session->frame;
         if ($frame) {
             $expected = (int) $frame->photo_count;
@@ -33,16 +31,6 @@ class OutputController extends Controller
 
     public function index(Request $request, Session $session)
     {
-        $this->ensureUserScope($request, $session);
-
         return response()->json(['data' => $session->outputs]);
-    }
-
-    private function ensureUserScope(Request $request, Session $session): void
-    {
-        $userId = $request->attributes->get('user_id');
-        if ((int) $session->user_id !== (int) $userId) {
-            abort(403, 'Sesi tidak termasuk user ini.');
-        }
     }
 }

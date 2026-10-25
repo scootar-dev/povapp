@@ -11,15 +11,17 @@ class SessionController extends Controller
 {
     public function store(Request $request)
     {
+        \Log::info('Request all: ' . json_encode($request->all()));
+        \Log::info('Request input frame_id: ' . $request->input('frame_id'));
+        
         $data = $request->validate([
             'frame_id' => 'nullable|exists:frames,id',
             'retake_quota' => 'nullable|integer|min:0|max:10',
         ]);
-
-        $userId = $request->attributes->get('user_id');
+        
+        \Log::info('Validated data: ' . json_encode($data));
 
         $session = Session::create([
-            'user_id' => $userId,
             'frame_id' => $data['frame_id'] ?? null,
             'retake_quota' => $data['retake_quota'] ?? 2,
             'status' => 'started',
@@ -30,8 +32,6 @@ class SessionController extends Controller
 
     public function updateStatus(Request $request, Session $session)
     {
-        $this->ensureUserScope($request, $session);
-
         $data = $request->validate([
             'status' => 'required|in:started,shooting,reviewing,rendering,printed,shared,completed,abandoned',
         ]);
@@ -47,21 +47,11 @@ class SessionController extends Controller
 
     public function complete(Request $request, Session $session)
     {
-        $this->ensureUserScope($request, $session);
-
         $session->update([
             'status' => 'completed',
             'completed_at' => now(),
         ]);
 
         return response()->json(['data' => $session]);
-    }
-
-    private function ensureUserScope(Request $request, Session $session): void
-    {
-        $userId = $request->attributes->get('user_id');
-        if ((int) $session->user_id !== (int) $userId) {
-            abort(403, 'Sesi tidak termasuk user ini.');
-        }
     }
 }
