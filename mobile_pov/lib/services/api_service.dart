@@ -1,11 +1,10 @@
 import 'package:dio/dio.dart';
 
-import '../config.dart';
 import '../core/storage.dart';
 
 /// Wrapper Dio untuk endpoint /api/kiosk/* pada app customer (mobile_pov).
-/// Base URL + studio token dibaca runtime dari [MobileStorage] setiap request,
-/// sehingga bisa diubah lewat layar Pengaturan tanpa rebuild.
+/// Base URL dibaca dari [MobileStorage] setiap request.
+/// Tidak ada auth token karena API povstudio_admin bersifat public.
 class ApiService {
   ApiService()
       : _dio = Dio(BaseOptions(
@@ -16,7 +15,6 @@ class ApiService {
     _dio.interceptors.add(InterceptorsWrapper(
       onRequest: (o, h) async {
         o.baseUrl = await MobileStorage.getBaseUrl();
-        o.headers['Authorization'] = 'Bearer ${await MobileStorage.getToken()}';
         return h.next(o);
       },
       onError: (e, h) async {
@@ -46,11 +44,10 @@ class ApiService {
       return 'Koneksi timeout — cek jaringan / IP server.';
     }
     if (e.type == DioExceptionType.connectionError) {
-      return 'Tidak bisa terhubung ke server. Cek API Base URL di Pengaturan.';
+      return 'Tidak bisa terhubung ke server.';
     }
     final code = e.response?.statusCode;
     final body = e.response?.data;
-    if (code == 401) return 'Token studio tidak valid — cek Studio Token di Pengaturan.';
     if (code == 422) {
       final m = body is Map ? (body['message'] ?? body['msg']) : null;
       return m?.toString() ?? 'Validasi gagal (422).';
@@ -72,19 +69,6 @@ class ApiService {
   Future<Response> getFrameDetail(int id) => _guard(() => _dio.get('/api/kiosk/frames/$id'));
   Future<Response> getStickers() => _guard(() => _dio.get('/api/kiosk/stickers'));
 
-  // Public endpoints (no auth)
-  Future<Response> getFramesPublic() => _publicGet('/api/kiosk/frames');
-  Future<Response> getStickersPublic() => _publicGet('/api/kiosk/stickers');
-
-  Future<Response> _publicGet(String path) async {
-    final baseUrl = await MobileStorage.getBaseUrl();
-    return _guard(() => Dio(BaseOptions(
-      baseUrl: baseUrl,
-      connectTimeout: const Duration(seconds: 10),
-      receiveTimeout: const Duration(seconds: 30),
-      headers: {'Accept': 'application/json'},
-    )).get(path));
-  }
   Future<Response> createSession({required int frameId}) =>
       _guard(() => _dio.post('/api/kiosk/sessions', data: {'frame_id': frameId}));
   Future<Response> updateStatus(int id, String s) =>
@@ -104,7 +88,6 @@ class ApiService {
   Future<Response> getOutputs(int sid) => _guard(() => _dio.get('/api/kiosk/sessions/$sid/outputs'));
   Future<Response> complete(int sid) => _guard(() => _dio.post('/api/kiosk/sessions/$sid/complete'));
 
-  // public — tanpa auth studio
   Future<Response> fetchDownload(String code) async {
     final base = await MobileStorage.getBaseUrl();
     return _guard(() => Dio(BaseOptions(baseUrl: base)).get('/api/download/$code'));
@@ -112,4 +95,4 @@ class ApiService {
 }
 
 /// Fallback kompatibilitas: ekspor konstanta config untuk UI.
-String get kDefaultBaseUrl => AppConfig.baseUrl;
+String get kDefaultBaseUrl => MobileStorage.defaultBaseUrl;
