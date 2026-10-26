@@ -13,6 +13,20 @@ class PreviewSelectScreen extends ConsumerStatefulWidget {
 class _PreviewSelectScreenState extends ConsumerState<PreviewSelectScreen> {
   bool _uploading = false;
 
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final s = ref.read(mobileSessionProvider);
+      if (s.selectedIndices.isEmpty) {
+        final notifier = ref.read(mobileSessionProvider.notifier);
+        for (var i = 0; i < s.localPhotos.length; i++) {
+          notifier.toggleSelect(i);
+        }
+      }
+    });
+  }
+
   Future<void> _next() async {
     final s = ref.read(mobileSessionProvider);
     if (s.selectedIndices.isEmpty) {
@@ -21,7 +35,7 @@ class _PreviewSelectScreenState extends ConsumerState<PreviewSelectScreen> {
     }
     setState(()=>_uploading=true);
     try {
-      await ref.read(mobileSessionProvider.notifier).uploadAll();
+      await ref.read(mobileSessionProvider.notifier).uploadSelected();
       final id = await ref.read(mobileSessionProvider.notifier).render();
       if (mounted) Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_)=> QrResultScreen(outputId: id)));
     } catch (e) {
@@ -32,6 +46,7 @@ class _PreviewSelectScreenState extends ConsumerState<PreviewSelectScreen> {
   @override
   Widget build(BuildContext context) {
     final s = ref.watch(mobileSessionProvider);
+    final baseUrl = ref.watch(baseUrlProvider).valueOrNull ?? '';
     return Scaffold(
       appBar: AppBar(title: const Text('Pilih Foto'), actions: [Center(child: Padding(padding: const EdgeInsets.only(right:12), child: Text('${s.selectedIndices.length} dipilih')))]),
       body: Column(children: [
@@ -49,7 +64,7 @@ class _PreviewSelectScreenState extends ConsumerState<PreviewSelectScreen> {
                   Positioned(top: 8, left: 8, child: Container(padding: const EdgeInsets.symmetric(horizontal:6, vertical:2), decoration: BoxDecoration(color: Colors.black54, borderRadius: BorderRadius.circular(6)), child: Text('Foto ${i+1}', style: const TextStyle(color: Colors.white, fontSize:10)))),
                   Positioned(top: 8, right: 8, child: Icon(sel? Icons.check_circle: Icons.circle_outlined, color: sel? Colors.greenAccent: Colors.white)),
                   if (s.stickers.isNotEmpty)
-                    Positioned.fill(child: IgnorePointer(child: Stack(children: s.stickers.map((p)=> Positioned(left: p.dx*160, top: p.dy*180, child: Text(p.sticker.emoji, style: const TextStyle(fontSize: 20)))).toList()))),
+                    Positioned.fill(child: IgnorePointer(child: Stack(children: s.stickers.map((p)=> Positioned(left: p.dx*160, top: p.dy*180, child: p.sticker.assetPath != null ? Image.network(p.sticker.getAssetUrl(baseUrl)!, width: 28, height: 28, errorBuilder: (_, _, _) => const Icon(Icons.auto_awesome, size: 20, color: Colors.white)) : const Icon(Icons.auto_awesome, size: 20, color: Colors.white))).toList()))),
                 ]),
               );
             },

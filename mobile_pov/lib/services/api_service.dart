@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:dio/dio.dart';
 
 import '../core/storage.dart';
@@ -88,9 +90,45 @@ class ApiService {
   Future<Response> getOutputs(int sid) => _guard(() => _dio.get('/api/kiosk/sessions/$sid/outputs'));
   Future<Response> complete(int sid) => _guard(() => _dio.post('/api/kiosk/sessions/$sid/complete'));
 
+  Future<Response> saveStickers(int sid, List<Map<String, dynamic>> stickers) =>
+      _guard(() => _dio.put('/api/kiosk/sessions/$sid/stickers', data: {'stickers': stickers}));
+
+  Future<Response> requestPrint(int sid, {int? outputId}) => _guard(() => _dio.post(
+        '/api/kiosk/sessions/$sid/print',
+        data: {
+          'output_id': ?outputId,
+        },
+      ));
+
+  Future<Response> updatePrintStatus(int printLogId, String status) =>
+      _guard(() => _dio.patch('/api/kiosk/print-jobs/$printLogId', data: {'status': status}));
+
+  Future<Response> recordShare(int sid, String method, {String? sharedWith}) => _guard(
+        () => _dio.post(
+          '/api/kiosk/sessions/$sid/share',
+          data: {
+            'method': method,
+            'shared_with': ?sharedWith,
+          },
+        ),
+      );
+
+  Future<Uint8List> fetchStorageBytes(String path) async {
+    final base = await MobileStorage.getBaseUrl();
+    try {
+      final res = await Dio().get<List<int>>(
+        '$base/storage/$path',
+        options: Options(responseType: ResponseType.bytes),
+      );
+      return Uint8List.fromList(res.data ?? const []);
+    } on DioException catch (e) {
+      throw Exception(_msg(e));
+    }
+  }
+
   Future<Response> fetchDownload(String code) async {
     final base = await MobileStorage.getBaseUrl();
-    return _guard(() => Dio(BaseOptions(baseUrl: base)).get('/api/download/$code'));
+    return _guard(() => Dio(BaseOptions(baseUrl: base)).get('/download/$code'));
   }
 }
 

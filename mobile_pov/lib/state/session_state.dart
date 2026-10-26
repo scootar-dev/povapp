@@ -9,9 +9,12 @@ class MobileSessionData {
   final String? sessionCode;
   final FrameModel? frame;
   final List<PlacedSticker> stickers;
-  final List<String> localPhotos; // file paths lokal
-  final List<int> selectedIndices; // index foto yang dipilih untuk cetak/unduh
+  final List<String> localPhotos;
+  final List<int> selectedIndices;
   final int? printOutputId;
+  final int? digitalOutputId;
+  final String? printPath;
+  final String? digitalPath;
 
   const MobileSessionData({
     this.sessionId,
@@ -21,6 +24,9 @@ class MobileSessionData {
     this.localPhotos = const [],
     this.selectedIndices = const [],
     this.printOutputId,
+    this.digitalOutputId,
+    this.printPath,
+    this.digitalPath,
   });
 
   MobileSessionData copyWith({
@@ -31,6 +37,9 @@ class MobileSessionData {
     List<String>? localPhotos,
     List<int>? selectedIndices,
     int? printOutputId,
+    int? digitalOutputId,
+    String? printPath,
+    String? digitalPath,
   }) => MobileSessionData(
         sessionId: sessionId ?? this.sessionId,
         sessionCode: sessionCode ?? this.sessionCode,
@@ -39,6 +48,9 @@ class MobileSessionData {
         localPhotos: localPhotos ?? this.localPhotos,
         selectedIndices: selectedIndices ?? this.selectedIndices,
         printOutputId: printOutputId ?? this.printOutputId,
+        digitalOutputId: digitalOutputId ?? this.digitalOutputId,
+        printPath: printPath ?? this.printPath,
+        digitalPath: digitalPath ?? this.digitalPath,
       );
 }
 
@@ -47,12 +59,12 @@ class MobileSessionNotifier extends StateNotifier<MobileSessionData> {
   final _api = ApiService();
 
   void selectFrame(FrameModel f) => state = state.copyWith(frame: f);
+
   void toggleSticker(StickerModel s) {
     final exists = state.stickers.any((p) => p.sticker.id == s.id);
     if (exists) {
       state = state.copyWith(stickers: state.stickers.where((p) => p.sticker.id != s.id).toList());
     } else {
-      // place random position
       final dx = 0.2 + (state.stickers.length * 0.15) % 0.6;
       final dy = 0.2 + (state.stickers.length * 0.12) % 0.6;
       state = state.copyWith(stickers: [...state.stickers, PlacedSticker(sticker: s, dx: dx, dy: dy)]);
@@ -75,12 +87,6 @@ class MobileSessionNotifier extends StateNotifier<MobileSessionData> {
 
   void addLocalPhoto(String path) => state = state.copyWith(localPhotos: [...state.localPhotos, path]);
 
-  Future<void> uploadAll() async {
-    for (int i = 0; i < state.localPhotos.length; i++) {
-      await _api.uploadPhoto(state.sessionId!, i, state.localPhotos[i]);
-    }
-  }
-
   void toggleSelect(int idx) {
     final s = [...state.selectedIndices];
     if (s.contains(idx)) {
@@ -91,16 +97,61 @@ class MobileSessionNotifier extends StateNotifier<MobileSessionData> {
     state = state.copyWith(selectedIndices: s);
   }
 
+  /// Unggah hanya foto yang dipilih, dipetakan berurutan ke slot frame.
+  Future<void> uploadSelected() async {
+    if (state.sessionId == null) throw Exception('Sesi belum dimulai');
+    final indices = [...state.selectedIndices]..sort();
+    if (indices.isEmpty) throw Exception('Pilih minimal 1 foto');
+
+    final slots = state.frame?.photoCount ?? indices.length;
+    if (indices.length < slots) {
+      throw Exception('Pilih $slots foto dulu untuk frame ini');
+    }
+
+    for (var slot = 0; slot < slots && slot < indices.length; slot++) {
+      await _api.uploadPhoto(state.sessionId!, slot, state.localPhotos[indices[slot]]);
+    }
+  }
+
   Future<int> render() async {
-    await _api.updateStatus(state.sessionId!, 'rendering');
-    await _api.renderOutput(state.sessionId!);
+    final sid = state.sessionId;
+    if (sid == null) throw Exception('Sesi belum dimulai');
+
+    await _api.updateStatus(sid, 'rendering');
+
+    final placements = <Map<String, dynamic>>[];
+    for (final p in state.stickers) {
+      final stickerId = int.tryParse(p.sticker.id);
+      if (stickerId == null) continue;
+      placements.add({
+        'sticker_id': stickerId,
+        'x': p.dx.clamp(0.0, 0.95),
+        'y': p.dy.clamp(0.0, 0.95),
+        'size': (0.18 * p.scale).clamp(0.05, 1.0),
+        'rotation': 0,
+      });
+    }
+    await _api.saveStickers(sid, placements);
+
+    await _api.renderOutput(sid);
+
     for (var i = 0; i < 30; i++) {
       await Future.delayed(const Duration(seconds: 2));
-      final res = await _api.getOutputs(state.sessionId!);
-      final outs = res.data['data'] as List;
-      final printOut = outs.cast<Map?>().firstWhere((o) => o != null && o['type'] == 'print_image', orElse: () => null);
+      final res = await _api.getOutputs(sid);
+      final outs = (res.data['data'] as List).cast<Map<String, dynamic>>();
+
+      final printMatches = outs.where((o) => o['type'] == 'print_image').toList();
+      final digitalMatches = outs.where((o) => o['type'] == 'digital_image').toList();
+      final printOut = printMatches.isEmpty ? null : printMatches.first;
+      final digitalOut = digitalMatches.isEmpty ? null : digitalMatches.first;
+
       if (printOut != null) {
-        state = state.copyWith(printOutputId: printOut['id'] as int);
+        state = state.copyWith(
+          printOutputId: printOut['id'] as int,
+          printPath: printOut['file_path'] as String?,
+          digitalOutputId: digitalOut?['id'] as int?,
+          digitalPath: digitalOut?['file_path'] as String?,
+        );
         return printOut['id'] as int;
       }
     }
@@ -126,6 +177,5 @@ final stickersProvider = FutureProvider<List<StickerModel>>((ref) async {
   return (res.data['data'] as List).map((s) => StickerModel.fromJson(s)).toList();
 });
 
-/// Base URL runtime (berubah saat disimpan lewat Pengaturan) — untuk membangun
-/// URL file storage & link download.
+/// Base URL runtime untuk membangun URL file storage & link download.
 final baseUrlProvider = FutureProvider<String>((ref) => MobileStorage.getBaseUrl());

@@ -43,7 +43,9 @@ class _FrameStickerScreenState extends ConsumerState<FrameStickerScreen> with Si
                   left: e.value.dx * 260, top: e.value.dy * 100,
                   child: GestureDetector(
                     onPanUpdate: (d) => ref.read(mobileSessionProvider.notifier).updateStickerPos(e.key, (e.value.dx + d.delta.dx/300).clamp(0.0, 0.85), (e.value.dy + d.delta.dy/120).clamp(0.0, 0.85)),
-                    child: Text(e.value.sticker.emoji, style: const TextStyle(fontSize: 28)),
+                    child: e.value.sticker.assetPath != null
+                        ? Image.network(e.value.sticker.getAssetUrl(baseUrl)!, width: 40, height: 40, errorBuilder: (_, _, _) => const Icon(Icons.auto_awesome, size: 28))
+                        : const Icon(Icons.auto_awesome, size: 28),
                   ),
                 )),
               ],
@@ -55,7 +57,7 @@ class _FrameStickerScreenState extends ConsumerState<FrameStickerScreen> with Si
               child: ListView(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 12),
-                children: stickers.map((p) => Chip(label: Text(p.sticker.emoji), onDeleted: ()=>ref.read(mobileSessionProvider.notifier).toggleSticker(p.sticker))).toList(),
+                children: stickers.map((p) => Chip(label: Text(p.sticker.name), onDeleted: ()=>ref.read(mobileSessionProvider.notifier).toggleSticker(p.sticker))).toList(),
               ),
             ),
           Expanded(
@@ -63,7 +65,7 @@ class _FrameStickerScreenState extends ConsumerState<FrameStickerScreen> with Si
               // TEMPLATE TAB: grid frame dari admin
               framesAsync.when(
                 loading: ()=> const Center(child: CircularProgressIndicator()),
-                error: (e,_)=> Center(child: Column(mainAxisSize: MainAxisSize.min, children: [Text('Gagal: $e', textAlign: TextAlign.center), const SizedBox(height: 8), const Text('Cek URL & Token di Pengaturan (tahan logo)', style: TextStyle(fontSize: 11, color: Colors.black54)), const SizedBox(height: 8), FilledButton(onPressed: ()=>ref.invalidate(framesProvider), child: const Text('Retry'))])),
+                error: (e,_)=> Center(child: Column(mainAxisSize: MainAxisSize.min, children: [Text('Gagal: $e', textAlign: TextAlign.center), const SizedBox(height: 8), Text('Pastikan server povstudio_admin aktif di $baseUrl', style: const TextStyle(fontSize: 11, color: Colors.black54), textAlign: TextAlign.center), const SizedBox(height: 8), FilledButton(onPressed: ()=>ref.invalidate(framesProvider), child: const Text('Retry'))])),
                 data: (frames) => GridView.builder(
                   padding: const EdgeInsets.all(12),
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, childAspectRatio: 0.85, crossAxisSpacing: 12, mainAxisSpacing: 12),
@@ -126,8 +128,8 @@ class _FrameStickerScreenState extends ConsumerState<FrameStickerScreen> with Si
                             decoration: BoxDecoration(color: chosen ? Colors.deepPurple.withValues(alpha: 0.15) : Colors.grey.shade100, border: Border.all(color: chosen ? Colors.deepPurple : Colors.grey.shade300), borderRadius: BorderRadius.circular(8)),
                             child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
                               s.assetPath != null
-                                  ? Image.network(s.getAssetUrl(baseUrl)!, width: 28, height: 28, errorBuilder: (_, _, _) => Text(s.emoji, style: const TextStyle(fontSize: 28)))
-                                  : Text(s.emoji, style: const TextStyle(fontSize: 28)),
+                                  ? Image.network(s.getAssetUrl(baseUrl)!, width: 28, height: 28, errorBuilder: (_, _, _) => const Icon(Icons.auto_awesome, size: 24))
+                                  : const Icon(Icons.auto_awesome, size: 24),
                               Text(s.name, style: const TextStyle(fontSize: 9)),
                             ]),
                           ),
