@@ -48,6 +48,11 @@ class Session extends Model
         return $this->hasMany(Output::class);
     }
 
+    public function stickerPlacements()
+    {
+        return $this->hasMany(SessionSticker::class);
+    }
+
     public function printLogs()
     {
         return $this->hasMany(PrintLog::class);

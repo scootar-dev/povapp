@@ -7,10 +7,14 @@ use App\Http\Controllers\StickerController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\GoogleAuthController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\PublicDownloadController;
 
 // ==========================================
 // HALAMAN UTAMA
 // ==========================================
+
+Route::get('/download/{sessionCode}', [PublicDownloadController::class, 'show'])
+    ->name('download.show');
 
 Route::get('/', function () {
     return redirect()->route('dashboard');

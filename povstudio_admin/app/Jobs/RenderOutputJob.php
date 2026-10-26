@@ -25,7 +25,7 @@ class RenderOutputJob implements ShouldQueue
 
     public function handle(): void
     {
-        $session = $this->session->fresh(['frame.slots', 'selectedPhotos']);
+        $session = $this->session->fresh(['frame.slots', 'selectedPhotos', 'stickerPlacements.sticker']);
         $frame = $session->frame;
 
         if (! $frame) {
@@ -71,16 +71,52 @@ class RenderOutputJob implements ShouldQueue
             }
         }
 
-        $overlayPath = Storage::disk('public')->path($frame->overlay_path);
-        if (file_exists($overlayPath)) {
+        foreach ($session->stickerPlacements as $placement) {
+            $sticker = $placement->sticker;
+            if (! $sticker) {
+                continue;
+            }
+
+            $stickerPath = Storage::disk('public')->path($sticker->gambar);
+            if (! file_exists($stickerPath)) {
+                Log::warning("RenderOutputJob: sticker file not found {$stickerPath}");
+                continue;
+            }
+
             try {
-                $overlay = $manager->decodePath($overlayPath);
-                if ($overlay->width() !== $frame->output_width_px || $overlay->height() !== $frame->output_height_px) {
-                    $overlay->resize($frame->output_width_px, $frame->output_height_px);
+                $stickerImage = $manager->decodePath($stickerPath);
+
+                $size = max(24, (int) round($placement->size * $frame->output_width_px));
+                $stickerImage->scale(width: $size, height: $size);
+
+                if ((float) $placement->rotation !== 0.0) {
+                    $stickerImage->rotate(-(float) $placement->rotation, background: 'transparent');
                 }
-                $canvas->insert($overlay, x: 0, y: 0, alignment: 'top-left');
+
+                $x = (int) round($placement->x * $frame->output_width_px);
+                $y = (int) round($placement->y * $frame->output_height_px);
+                $x = max(0, min($x, $frame->output_width_px - $stickerImage->width()));
+                $y = max(0, min($y, $frame->output_height_px - $stickerImage->height()));
+
+                $canvas->insert($stickerImage, x: $x, y: $y, alignment: 'top-left');
             } catch (\Throwable $e) {
-                Log::warning("RenderOutputJob: gagal load overlay {$overlayPath}: {$e->getMessage()}");
+                Log::error("RenderOutputJob: gagal proses stiker {$sticker->id}: {$e->getMessage()}");
+                continue;
+            }
+        }
+
+        if ($frame->overlay_path) {
+            $overlayPath = Storage::disk('public')->path($frame->overlay_path);
+            if (file_exists($overlayPath)) {
+                try {
+                    $overlay = $manager->decodePath($overlayPath);
+                    if ($overlay->width() !== $frame->output_width_px || $overlay->height() !== $frame->output_height_px) {
+                        $overlay->resize($frame->output_width_px, $frame->output_height_px);
+                    }
+                    $canvas->insert($overlay, x: 0, y: 0, alignment: 'top-left');
+                } catch (\Throwable $e) {
+                    Log::warning("RenderOutputJob: gagal load overlay {$overlayPath}: {$e->getMessage()}");
+                }
             }
         }
 

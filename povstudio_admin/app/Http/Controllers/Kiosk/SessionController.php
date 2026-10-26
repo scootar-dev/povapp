@@ -11,18 +11,13 @@ class SessionController extends Controller
 {
     public function store(Request $request)
     {
-        \Log::info('Request all: ' . json_encode($request->all()));
-        \Log::info('Request input frame_id: ' . $request->input('frame_id'));
-        
         $data = $request->validate([
-            'frame_id' => 'nullable|exists:frames,id',
+            'frame_id' => 'required|exists:frames,id',
             'retake_quota' => 'nullable|integer|min:0|max:10',
         ]);
-        
-        \Log::info('Validated data: ' . json_encode($data));
 
         $session = Session::create([
-            'frame_id' => $data['frame_id'] ?? null,
+            'frame_id' => $data['frame_id'],
             'retake_quota' => $data['retake_quota'] ?? 2,
             'status' => 'started',
         ]);

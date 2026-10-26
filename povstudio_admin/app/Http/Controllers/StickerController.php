@@ -14,7 +14,7 @@ class StickerController extends Controller
 
         $totalStickers = Sticker::count();
 
-        $activeStickers = Sticker::where('status', 'Aktif')->count();
+        $activeStickers = Sticker::whereIn('status', [1, '1', 'Aktif'])->count();
 
         $totalCategories = Sticker::whereNotNull('kategori')
             ->where('kategori', '!=', '')
@@ -67,7 +67,7 @@ class StickerController extends Controller
             'kategori' => $request->kategori,
             'deskripsi' => $request->deskripsi,
             'tag' => $request->tag,
-            'status' => $request->status,
+            'status' => $request->status === 'Aktif' ? 1 : 0,
             'penggunaan' => 0,
         ]);
 
