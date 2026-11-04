@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../state/session_state.dart';
+import '../widgets/server_dialog.dart';
 import 'shoot_mobile_screen.dart';
 
 class FrameStickerScreen extends ConsumerStatefulWidget {
@@ -27,6 +28,13 @@ class _FrameStickerScreenState extends ConsumerState<FrameStickerScreen> with Si
     return Scaffold(
       appBar: AppBar(
         title: const Text('Pilih Frame & Stiker'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings_ethernet),
+            tooltip: 'Pengaturan IP Server',
+            onPressed: () => showServerSettingsDialog(context, ref),
+          ),
+        ],
         bottom: TabBar(controller: _tab, tabs: const [Tab(icon: Icon(Icons.dashboard), text: 'Template'), Tab(icon: Icon(Icons.brush), text: 'Kustom')]),
       ),
       body: Column(
@@ -44,7 +52,7 @@ class _FrameStickerScreenState extends ConsumerState<FrameStickerScreen> with Si
                   child: GestureDetector(
                     onPanUpdate: (d) => ref.read(mobileSessionProvider.notifier).updateStickerPos(e.key, (e.value.dx + d.delta.dx/300).clamp(0.0, 0.85), (e.value.dy + d.delta.dy/120).clamp(0.0, 0.85)),
                     child: e.value.sticker.assetPath != null
-                        ? Image.network(e.value.sticker.getAssetUrl(baseUrl)!, width: 40, height: 40, errorBuilder: (_, _, _) => const Icon(Icons.auto_awesome, size: 28))
+                        ? Image.network(e.value.sticker.getAssetUrl(baseUrl)!, width: 40, height: 40, errorBuilder: (_, __, ___) => const Icon(Icons.auto_awesome, size: 28))
                         : const Icon(Icons.auto_awesome, size: 28),
                   ),
                 )),
@@ -65,7 +73,20 @@ class _FrameStickerScreenState extends ConsumerState<FrameStickerScreen> with Si
               // TEMPLATE TAB: grid frame dari admin
               framesAsync.when(
                 loading: ()=> const Center(child: CircularProgressIndicator()),
-                error: (e,_)=> Center(child: Column(mainAxisSize: MainAxisSize.min, children: [Text('Gagal: $e', textAlign: TextAlign.center), const SizedBox(height: 8), Text('Pastikan server povstudio_admin aktif di $baseUrl', style: const TextStyle(fontSize: 11, color: Colors.black54), textAlign: TextAlign.center), const SizedBox(height: 8), FilledButton(onPressed: ()=>ref.invalidate(framesProvider), child: const Text('Retry'))])),
+                error: (e,_)=> Center(child: Padding(padding: const EdgeInsets.all(16), child: Column(mainAxisSize: MainAxisSize.min, children: [
+                  const Icon(Icons.cloud_off, size: 48, color: Colors.redAccent),
+                  const SizedBox(height: 8),
+                  Text('Gagal terhubung ke server', textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  const SizedBox(height: 4),
+                  Text('$e', textAlign: TextAlign.center, style: const TextStyle(fontSize: 12, color: Colors.black54)),
+                  const SizedBox(height: 4),
+                  Text('Server URL: $baseUrl', style: const TextStyle(fontSize: 11, color: Colors.blueGrey), textAlign: TextAlign.center),
+                  const SizedBox(height: 12),
+                  Wrap(spacing: 8, alignment: WrapAlignment.center, children: [
+                    FilledButton.icon(icon: const Icon(Icons.refresh, size: 16), onPressed: ()=>ref.invalidate(framesProvider), label: const Text('Coba Lagi')),
+                    OutlinedButton.icon(icon: const Icon(Icons.settings_ethernet, size: 16), label: const Text('Ubah IP Server'), onPressed: () => showServerSettingsDialog(context, ref)),
+                  ]),
+                ]))),
                 data: (frames) => GridView.builder(
                   padding: const EdgeInsets.all(12),
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, childAspectRatio: 0.85, crossAxisSpacing: 12, mainAxisSpacing: 12),
@@ -78,7 +99,7 @@ class _FrameStickerScreenState extends ConsumerState<FrameStickerScreen> with Si
                       child: Container(
                         decoration: BoxDecoration(border: Border.all(color: sel? Colors.deepPurple: Colors.grey.shade300, width: sel?3:1), borderRadius: BorderRadius.circular(12)),
                         child: Column(children: [
-                          Expanded(child: f.thumbnailPath != null ? Image.network(f.getThumbnailUrl(baseUrl)!, fit: BoxFit.cover, width: double.infinity, errorBuilder: (_,_,_)=> const Icon(Icons.image)) : const Icon(Icons.filter_frames, size: 48)),
+                          Expanded(child: f.thumbnailPath != null ? Image.network(f.getThumbnailUrl(baseUrl)!, fit: BoxFit.cover, width: double.infinity, errorBuilder: (_, __, ___)=> const Icon(Icons.image)) : const Icon(Icons.filter_frames, size: 48)),
                           Padding(padding: const EdgeInsets.all(8), child: Text(f.name, style: TextStyle(fontWeight: sel?FontWeight.bold:FontWeight.normal))),
                           Text('${f.photoCount} foto', style: const TextStyle(fontSize: 11)),
                           if (sel) const Icon(Icons.check_circle, color: Colors.deepPurple, size: 16),
@@ -128,7 +149,7 @@ class _FrameStickerScreenState extends ConsumerState<FrameStickerScreen> with Si
                             decoration: BoxDecoration(color: chosen ? Colors.deepPurple.withValues(alpha: 0.15) : Colors.grey.shade100, border: Border.all(color: chosen ? Colors.deepPurple : Colors.grey.shade300), borderRadius: BorderRadius.circular(8)),
                             child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
                               s.assetPath != null
-                                  ? Image.network(s.getAssetUrl(baseUrl)!, width: 28, height: 28, errorBuilder: (_, _, _) => const Icon(Icons.auto_awesome, size: 24))
+                                  ? Image.network(s.getAssetUrl(baseUrl)!, width: 28, height: 28, errorBuilder: (_, __, ___) => const Icon(Icons.auto_awesome, size: 24))
                                   : const Icon(Icons.auto_awesome, size: 24),
                               Text(s.name, style: const TextStyle(fontSize: 9)),
                             ]),

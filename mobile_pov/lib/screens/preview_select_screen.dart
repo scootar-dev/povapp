@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../state/session_state.dart';
@@ -60,11 +59,16 @@ class _PreviewSelectScreenState extends ConsumerState<PreviewSelectScreen> {
               return GestureDetector(
                 onTap: ()=>ref.read(mobileSessionProvider.notifier).toggleSelect(i),
                 child: Stack(children: [
-                  Positioned.fill(child: ClipRRect(borderRadius: BorderRadius.circular(12), child: Image.file(File(s.localPhotos[i]), fit: BoxFit.cover))),
+                  Positioned.fill(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Image.memory(s.localPhotos[i].bytes, fit: BoxFit.cover),
+                    ),
+                  ),
                   Positioned(top: 8, left: 8, child: Container(padding: const EdgeInsets.symmetric(horizontal:6, vertical:2), decoration: BoxDecoration(color: Colors.black54, borderRadius: BorderRadius.circular(6)), child: Text('Foto ${i+1}', style: const TextStyle(color: Colors.white, fontSize:10)))),
                   Positioned(top: 8, right: 8, child: Icon(sel? Icons.check_circle: Icons.circle_outlined, color: sel? Colors.greenAccent: Colors.white)),
                   if (s.stickers.isNotEmpty)
-                    Positioned.fill(child: IgnorePointer(child: Stack(children: s.stickers.map((p)=> Positioned(left: p.dx*160, top: p.dy*180, child: p.sticker.assetPath != null ? Image.network(p.sticker.getAssetUrl(baseUrl)!, width: 28, height: 28, errorBuilder: (_, _, _) => const Icon(Icons.auto_awesome, size: 20, color: Colors.white)) : const Icon(Icons.auto_awesome, size: 20, color: Colors.white))).toList()))),
+                    Positioned.fill(child: IgnorePointer(child: Stack(children: s.stickers.map((p)=> Positioned(left: p.dx*160, top: p.dy*180, child: p.sticker.assetPath != null ? Image.network(p.sticker.getAssetUrl(baseUrl)!, width: 28, height: 28, errorBuilder: (_, __, ___) => const Icon(Icons.auto_awesome, size: 20, color: Colors.white)) : const Icon(Icons.auto_awesome, size: 20, color: Colors.white))).toList()))),
                 ]),
               );
             },

@@ -1,35 +1,67 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../widgets/server_dialog.dart';
 import 'frame_sticker_screen.dart';
 
-class WelcomeLogoScreen extends StatelessWidget {
+class WelcomeLogoScreen extends ConsumerWidget {
   const WelcomeLogoScreen({super.key});
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
-      body: Stack(children: [
-        GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const FrameStickerScreen())),
-          child: Container(
-            decoration: const BoxDecoration(gradient: LinearGradient(colors: [Color(0xFF1A0B2E), Color(0xFF6A1FB8)], begin: Alignment.topCenter, end: Alignment.bottomCenter)),
-            child: Center(
-              child: Column(mainAxisSize: MainAxisSize.min, children: [
-                Container(
-                  width: 140, height: 140,
-                  decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 20)]),
-                  child: const Icon(Icons.camera_alt_rounded, size: 72, color: Color(0xFF6A1FB8)),
+      body: Stack(
+        children: [
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const FrameStickerScreen())),
+            child: Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Color(0xFF1A0B2E), Color(0xFF6A1FB8)],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
                 ),
-                const SizedBox(height: 24),
-                const Text('POV STUDIO', style: TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold, letterSpacing: 4)),
-                const SizedBox(height: 8),
-                const Text('Tap di mana saja untuk mulai', style: TextStyle(color: Colors.white70, fontSize: 14)),
-                const SizedBox(height: 32),
-                Container(padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(30)), child: const Text('MULAI', style: TextStyle(color: Color(0xFF6A1FB8), fontWeight: FontWeight.bold))),
-              ]),
+              ),
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 140,
+                      height: 140,
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 20)],
+                      ),
+                      child: const Icon(Icons.camera_alt_rounded, size: 72, color: Color(0xFF6A1FB8)),
+                    ),
+                    const SizedBox(height: 24),
+                    const Text('POV STUDIO', style: TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold, letterSpacing: 4)),
+                    const SizedBox(height: 8),
+                    const Text('Tap di mana saja untuk mulai', style: TextStyle(color: Colors.white70, fontSize: 14)),
+                    const SizedBox(height: 32),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(30)),
+                      child: const Text('MULAI', style: TextStyle(color: Color(0xFF6A1FB8), fontWeight: FontWeight.bold)),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
-        ),
-      ]),
+          Positioned(
+            top: 40,
+            right: 16,
+            child: IconButton(
+              icon: const Icon(Icons.settings_ethernet, color: Colors.white70, size: 28),
+              tooltip: 'Pengaturan IP Server',
+              onPressed: () => showServerSettingsDialog(context, ref),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/storage.dart';
 import '../models/frame_model.dart';
+import '../models/photo_model.dart';
 import '../models/sticker_model.dart';
 import '../services/api_service.dart';
 
@@ -9,7 +10,7 @@ class MobileSessionData {
   final String? sessionCode;
   final FrameModel? frame;
   final List<PlacedSticker> stickers;
-  final List<String> localPhotos;
+  final List<CapturedPhoto> localPhotos;
   final List<int> selectedIndices;
   final int? printOutputId;
   final int? digitalOutputId;
@@ -34,7 +35,7 @@ class MobileSessionData {
     String? sessionCode,
     FrameModel? frame,
     List<PlacedSticker>? stickers,
-    List<String>? localPhotos,
+    List<CapturedPhoto>? localPhotos,
     List<int>? selectedIndices,
     int? printOutputId,
     int? digitalOutputId,
@@ -85,7 +86,9 @@ class MobileSessionNotifier extends StateNotifier<MobileSessionData> {
     await _api.updateStatus(state.sessionId!, 'shooting');
   }
 
-  void addLocalPhoto(String path) => state = state.copyWith(localPhotos: [...state.localPhotos, path]);
+  void addLocalPhoto(CapturedPhoto photo) => state = state.copyWith(localPhotos: [...state.localPhotos, photo]);
+
+  void clearLocalPhotos() => state = state.copyWith(localPhotos: [], selectedIndices: []);
 
   void toggleSelect(int idx) {
     final s = [...state.selectedIndices];
@@ -109,7 +112,8 @@ class MobileSessionNotifier extends StateNotifier<MobileSessionData> {
     }
 
     for (var slot = 0; slot < slots && slot < indices.length; slot++) {
-      await _api.uploadPhoto(state.sessionId!, slot, state.localPhotos[indices[slot]]);
+      final photo = state.localPhotos[indices[slot]];
+      await _api.uploadPhotoBytes(state.sessionId!, slot, photo.bytes, photo.name);
     }
   }
 

@@ -118,7 +118,7 @@ class _QrResultScreenState extends ConsumerState<QrResultScreen> {
                     child: Image.network(
                       imageUrl,
                       fit: BoxFit.contain,
-                      errorBuilder: (_, _, _) => const Center(child: Icon(Icons.broken_image, size: 64)),
+                      errorBuilder: (_, __, ___) => const Center(child: Icon(Icons.broken_image, size: 64)),
                     ),
                   ),
           ),
