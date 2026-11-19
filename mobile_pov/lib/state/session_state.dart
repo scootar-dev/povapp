@@ -10,7 +10,6 @@ class MobileSessionData {
   final FrameModel? frame;
   final List<PlacedSticker> stickers;
   final List<String> localPhotos;
-  final List<int> selectedIndices;
   final int? printOutputId;
   final int? digitalOutputId;
   final String? printPath;
@@ -22,7 +21,6 @@ class MobileSessionData {
     this.frame,
     this.stickers = const [],
     this.localPhotos = const [],
-    this.selectedIndices = const [],
     this.printOutputId,
     this.digitalOutputId,
     this.printPath,
@@ -35,18 +33,17 @@ class MobileSessionData {
     FrameModel? frame,
     List<PlacedSticker>? stickers,
     List<String>? localPhotos,
-    List<int>? selectedIndices,
     int? printOutputId,
     int? digitalOutputId,
     String? printPath,
     String? digitalPath,
-  }) => MobileSessionData(
+  }) =>
+      MobileSessionData(
         sessionId: sessionId ?? this.sessionId,
         sessionCode: sessionCode ?? this.sessionCode,
         frame: frame ?? this.frame,
         stickers: stickers ?? this.stickers,
         localPhotos: localPhotos ?? this.localPhotos,
-        selectedIndices: selectedIndices ?? this.selectedIndices,
         printOutputId: printOutputId ?? this.printOutputId,
         digitalOutputId: digitalOutputId ?? this.digitalOutputId,
         printPath: printPath ?? this.printPath,
@@ -63,17 +60,49 @@ class MobileSessionNotifier extends StateNotifier<MobileSessionData> {
   void toggleSticker(StickerModel s) {
     final exists = state.stickers.any((p) => p.sticker.id == s.id);
     if (exists) {
-      state = state.copyWith(stickers: state.stickers.where((p) => p.sticker.id != s.id).toList());
+      state = state.copyWith(
+        stickers: state.stickers.where((p) => p.sticker.id != s.id).toList(),
+      );
     } else {
       final dx = 0.2 + (state.stickers.length * 0.15) % 0.6;
       final dy = 0.2 + (state.stickers.length * 0.12) % 0.6;
-      state = state.copyWith(stickers: [...state.stickers, PlacedSticker(sticker: s, dx: dx, dy: dy)]);
+      state = state.copyWith(
+        stickers: [
+          ...state.stickers,
+          PlacedSticker(sticker: s, dx: dx, dy: dy),
+        ],
+      );
+    }
+  }
+
+  void addSticker(StickerModel s) {
+    final dx = 0.3 + (state.stickers.length * 0.1) % 0.4;
+    final dy = 0.3 + (state.stickers.length * 0.08) % 0.4;
+    state = state.copyWith(
+      stickers: [
+        ...state.stickers,
+        PlacedSticker(sticker: s, dx: dx, dy: dy),
+      ],
+    );
+  }
+
+  void removeSticker(int idx) {
+    if (idx >= 0 && idx < state.stickers.length) {
+      final list = [...state.stickers];
+      list.removeAt(idx);
+      state = state.copyWith(stickers: list);
     }
   }
 
   void updateStickerPos(int idx, double dx, double dy) {
+    if (idx < 0 || idx >= state.stickers.length) return;
     final list = [...state.stickers];
-    list[idx] = PlacedSticker(sticker: list[idx].sticker, dx: dx, dy: dy, scale: list[idx].scale);
+    list[idx] = PlacedSticker(
+      sticker: list[idx].sticker,
+      dx: dx.clamp(0.0, 0.85),
+      dy: dy.clamp(0.0, 0.85),
+      scale: list[idx].scale,
+    );
     state = state.copyWith(stickers: list);
   }
 
@@ -81,35 +110,38 @@ class MobileSessionNotifier extends StateNotifier<MobileSessionData> {
     if (state.frame == null) throw Exception('Pilih frame dulu');
     final res = await _api.createSession(frameId: state.frame!.id);
     final d = res.data['data'];
-    state = state.copyWith(sessionId: d['id'], sessionCode: d['session_code']);
+    state = state.copyWith(
+      sessionId: d['id'],
+      sessionCode: d['session_code'],
+      localPhotos: [],
+      stickers: [],
+    );
     await _api.updateStatus(state.sessionId!, 'shooting');
   }
 
-  void addLocalPhoto(String path) => state = state.copyWith(localPhotos: [...state.localPhotos, path]);
+  void addLocalPhoto(String path) =>
+      state = state.copyWith(localPhotos: [...state.localPhotos, path]);
 
-  void toggleSelect(int idx) {
-    final s = [...state.selectedIndices];
-    if (s.contains(idx)) {
-      s.remove(idx);
+  void retakePhoto(int slot, String path) {
+    if (slot >= 0 && slot < state.localPhotos.length) {
+      final list = [...state.localPhotos];
+      list[slot] = path;
+      state = state.copyWith(localPhotos: list);
     } else {
-      s.add(idx);
+      addLocalPhoto(path);
     }
-    state = state.copyWith(selectedIndices: s);
   }
 
-  /// Unggah hanya foto yang dipilih, dipetakan berurutan ke slot frame.
-  Future<void> uploadSelected() async {
+  /// Unggah foto ke backend sesuai slot
+  Future<void> uploadAllPhotos() async {
     if (state.sessionId == null) throw Exception('Sesi belum dimulai');
-    final indices = [...state.selectedIndices]..sort();
-    if (indices.isEmpty) throw Exception('Pilih minimal 1 foto');
-
-    final slots = state.frame?.photoCount ?? indices.length;
-    if (indices.length < slots) {
-      throw Exception('Pilih $slots foto dulu untuk frame ini');
+    final slots = state.frame?.photoCount ?? state.localPhotos.length;
+    if (state.localPhotos.length < slots) {
+      throw Exception('Ambil $slots foto dulu untuk frame ini');
     }
 
-    for (var slot = 0; slot < slots && slot < indices.length; slot++) {
-      await _api.uploadPhoto(state.sessionId!, slot, state.localPhotos[indices[slot]]);
+    for (var slot = 0; slot < slots && slot < state.localPhotos.length; slot++) {
+      await _api.uploadPhoto(state.sessionId!, slot, state.localPhotos[slot]);
     }
   }
 
@@ -131,7 +163,12 @@ class MobileSessionNotifier extends StateNotifier<MobileSessionData> {
         'rotation': 0,
       });
     }
-    await _api.saveStickers(sid, placements);
+
+    try {
+      await _api.saveStickers(sid, placements);
+    } catch (_) {
+      // Stiker placement optional di backend
+    }
 
     await _api.renderOutput(sid);
 
@@ -155,17 +192,23 @@ class MobileSessionNotifier extends StateNotifier<MobileSessionData> {
         return printOut['id'] as int;
       }
     }
-    throw Exception('Render timeout — cek queue worker');
+    throw Exception('Render timeout — pastikan queue worker/backend aktif');
   }
 
   Future<void> complete() async {
-    if (state.sessionId != null) await _api.complete(state.sessionId!);
+    if (state.sessionId != null) {
+      try {
+        await _api.complete(state.sessionId!);
+      } catch (_) {}
+    }
   }
 
   void reset() => state = const MobileSessionData();
 }
 
-final mobileSessionProvider = StateNotifierProvider<MobileSessionNotifier, MobileSessionData>((ref) => MobileSessionNotifier());
+final mobileSessionProvider =
+    StateNotifierProvider<MobileSessionNotifier, MobileSessionData>(
+        (ref) => MobileSessionNotifier());
 
 final framesProvider = FutureProvider<List<FrameModel>>((ref) async {
   final res = await ApiService().getFrames();
@@ -177,5 +220,5 @@ final stickersProvider = FutureProvider<List<StickerModel>>((ref) async {
   return (res.data['data'] as List).map((s) => StickerModel.fromJson(s)).toList();
 });
 
-/// Base URL runtime untuk membangun URL file storage & link download.
-final baseUrlProvider = FutureProvider<String>((ref) => MobileStorage.getBaseUrl());
+final baseUrlProvider =
+    FutureProvider<String>((ref) => MobileStorage.getBaseUrl());
