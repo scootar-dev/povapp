@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../state/session_state.dart';
-import 'frame_select_screen.dart';
+import 'frame_sticker_screen.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -77,7 +77,7 @@ class HomeScreen extends ConsumerWidget {
                       ref.read(mobileSessionProvider.notifier).reset();
                       Navigator.of(context).push(
                         MaterialPageRoute(
-                          builder: (_) => const FrameSelectScreen(),
+                          builder: (_) => const FrameStickerScreen(),
                         ),
                       );
                     },

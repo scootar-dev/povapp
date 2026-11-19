@@ -1,3 +1,5 @@
+import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pdf/pdf.dart';
@@ -50,13 +52,13 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
   bool _busyPrint = false;
   bool _busyShare = false;
 
-  String _storageUrl(String baseUrl, String? path) =>
-      path == null || path.isEmpty ? '' : '$baseUrl/storage/$path';
-
   Future<void> _showPrintDialog(String baseUrl) async {
     final s = ref.read(mobileSessionProvider);
-    final path = s.printPath ?? s.digitalPath;
-    if (path == null || baseUrl.isEmpty) {
+    final localPath = s.localCompositePath;
+    final serverPath = s.printPath ?? s.digitalPath;
+
+    if ((localPath == null || !File(localPath).existsSync()) &&
+        (serverPath == null || baseUrl.isEmpty)) {
       _snack('Hasil render belum siap.');
       return;
     }
@@ -74,7 +76,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                'Pilih Ukuran Cetak',
+                'Pilih Ukuran Kertas Cetak',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 12),
@@ -101,37 +103,34 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
     );
 
     if (selectedPreset != null) {
-      _executePrint(baseUrl, path, selectedPreset.toPdfFormat());
+      _executePrint(selectedPreset.toPdfFormat());
     }
   }
 
-  Future<void> _executePrint(
-    String baseUrl,
-    String path,
-    PdfPageFormat format,
-  ) async {
+  Future<void> _executePrint(PdfPageFormat format) async {
     final s = ref.read(mobileSessionProvider);
-    if (s.sessionId == null) return;
-
     setState(() => _busyPrint = true);
-    int? logId;
 
     try {
-      try {
-        final res = await _api.requestPrint(
-          s.sessionId!,
-          outputId: s.printOutputId,
-        );
-        logId = res.data['data']['id'] as int?;
-      } catch (_) {}
+      List<int> bytes;
+      if (s.localCompositePath != null &&
+          File(s.localCompositePath!).existsSync()) {
+        bytes = await File(s.localCompositePath!).readAsBytes();
+      } else if (s.printPath != null) {
+        bytes = await _api.fetchStorageBytes(s.printPath!);
+      } else {
+        throw Exception('File foto komposit tidak ditemukan');
+      }
 
-      final bytes = await _api.fetchStorageBytes(path);
       final doc = pw.Document();
       doc.addPage(
         pw.Page(
           pageFormat: format,
           build: (ctx) => pw.Center(
-            child: pw.Image(pw.MemoryImage(bytes), fit: pw.BoxFit.contain),
+            child: pw.Image(
+              pw.MemoryImage(Uint8List.fromList(bytes)),
+              fit: pw.BoxFit.contain,
+            ),
           ),
         ),
       );
@@ -140,36 +139,30 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
         onLayout: (pdfFormat) async => doc.save(),
       );
 
-      if (logId != null) {
-        await _api.updatePrintStatus(logId, printed ? 'completed' : 'failed');
-      }
       if (printed) _snack('Perintah cetak berhasil dikirim.');
     } catch (e) {
-      if (logId != null) {
-        try {
-          await _api.updatePrintStatus(logId, 'failed');
-        } catch (_) {}
-      }
       _snack('Gagal mencetak: $e');
     } finally {
       if (mounted) setState(() => _busyPrint = false);
     }
   }
 
-  Future<void> _shareLink(String downloadUrl) async {
+  Future<void> _sharePhoto(String downloadUrl) async {
     final s = ref.read(mobileSessionProvider);
-    if (s.sessionId == null || downloadUrl.isEmpty) {
-      _snack('Link download belum tersedia.');
-      return;
-    }
-
     setState(() => _busyShare = true);
+
     try {
-      await Share.share(
-        'Lihat dan unduh foto POV Studio saya di: $downloadUrl',
-      );
-      await _api.recordShare(s.sessionId!, 'link', sharedWith: downloadUrl);
-      _snack('Link berhasil dibagikan.');
+      if (s.localCompositePath != null &&
+          File(s.localCompositePath!).existsSync()) {
+        await Share.shareXFiles(
+          [XFile(s.localCompositePath!)],
+          text: 'Hasil foto POV Studio Photobooth! Unduh juga di: $downloadUrl',
+        );
+      } else if (downloadUrl.isNotEmpty) {
+        await Share.share('Lihat dan unduh foto POV Studio saya di: $downloadUrl');
+      } else {
+        _snack('File foto tidak tersedia untuk dibagikan.');
+      }
     } catch (e) {
       _snack('Gagal membagikan: $e');
     } finally {
@@ -186,10 +179,11 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
   Widget build(BuildContext context) {
     final s = ref.watch(mobileSessionProvider);
     final baseUrl = ref.watch(baseUrlProvider).valueOrNull ?? '';
-    final downloadUrl = s.sessionCode == null
-        ? ''
-        : '$baseUrl/download/${s.sessionCode}';
-    final imageUrl = _storageUrl(baseUrl, s.digitalPath ?? s.printPath);
+    final code = s.sessionCode ?? 'POV-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}';
+    final downloadUrl = baseUrl.isNotEmpty ? '$baseUrl/download/$code' : 'https://povstudio.id/download/$code';
+
+    final localPath = s.localCompositePath;
+    final hasLocalImage = localPath != null && File(localPath).existsSync();
 
     return Scaffold(
       appBar: AppBar(
@@ -202,15 +196,15 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           child: Column(
             children: [
-              // Session Code Badge
+              // Badge Kode Sesi
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
                 decoration: BoxDecoration(
                   color: Colors.purple.shade50,
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
-                  'Kode Sesi: ${s.sessionCode ?? "-"}',
+                  'Kode Sesi: $code',
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
@@ -220,9 +214,9 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
               ),
               const SizedBox(height: 8),
 
-              // Image Render Output Preview
+              // Pratinjau Gambar Hasil Komposit (Frame + Foto + Stiker)
               Expanded(
-                flex: 4,
+                flex: 5,
                 child: Container(
                   width: double.infinity,
                   decoration: BoxDecoration(
@@ -232,30 +226,28 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                   ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(15),
-                    child: imageUrl.isNotEmpty
-                        ? Image.network(
-                            imageUrl,
+                    child: hasLocalImage
+                        ? Image.file(
+                            File(localPath),
                             fit: BoxFit.contain,
-                            errorBuilder: (_, _, _) => const Center(
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(Icons.photo_outlined, size: 48, color: Colors.grey),
-                                  SizedBox(height: 8),
-                                  Text('Pratinjau sedang diproses...'),
-                                ],
-                              ),
-                            ),
                           )
-                        : const Center(
-                            child: Text('Hasil foto belum siap'),
-                          ),
+                        : (s.printPath != null && baseUrl.isNotEmpty)
+                            ? Image.network(
+                                '$baseUrl/storage/${s.printPath}',
+                                fit: BoxFit.contain,
+                                errorBuilder: (_, _, _) => const Center(
+                                  child: Icon(Icons.broken_image, size: 48),
+                                ),
+                              )
+                            : const Center(
+                                child: Text('Hasil foto sedang disiapkan...'),
+                              ),
                   ),
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 10),
 
-              // QR Code Download Card
+              // Kartu QR Code Unduh
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
@@ -277,20 +269,12 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                         border: Border.all(color: Colors.grey.shade200),
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: downloadUrl.isNotEmpty
-                          ? QrImageView(
-                              data: downloadUrl,
-                              size: 96,
-                            )
-                          : const SizedBox(
-                              width: 96,
-                              height: 96,
-                              child: Center(
-                                child: CircularProgressIndicator(),
-                              ),
-                            ),
+                      child: QrImageView(
+                        data: downloadUrl,
+                        size: 92,
+                      ),
                     ),
-                    const SizedBox(width: 14),
+                    const SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -300,22 +284,22 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                               Icon(Icons.qr_code_scanner, size: 18, color: Color(0xFF6A1FB8)),
                               SizedBox(width: 6),
                               Text(
-                                'Scan untuk Unduh Foto',
+                                'Scan QR untuk Unduh',
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
-                                  fontSize: 14,
+                                  fontSize: 13,
                                 ),
                               ),
                             ],
                           ),
                           const SizedBox(height: 4),
                           const Text(
-                            'Arahkan kamera HP Anda ke kode QR untuk mengunduh foto digital beresolusi tinggi.',
+                            'Scan dengan kamera HP lain untuk mengunduh foto digital resolusi tinggi.',
                             style: TextStyle(fontSize: 11, color: Colors.black54),
                           ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: 6),
                           InkWell(
-                            onTap: _busyShare ? null : () => _shareLink(downloadUrl),
+                            onTap: _busyShare ? null : () => _sharePhoto(downloadUrl),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
@@ -329,7 +313,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                                   Icon(Icons.share, size: 14, color: Colors.purple.shade700),
                                 const SizedBox(width: 4),
                                 Text(
-                                  'Bagikan Link',
+                                  'Bagikan / Simpan Foto',
                                   style: TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.bold,
@@ -345,9 +329,9 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                   ],
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 10),
 
-              // Action Buttons
+              // Tombol Cetak & Selesai
               Row(
                 children: [
                   Expanded(

@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../models/sticker_model.dart';
+import '../models/frame_model.dart';
 import '../state/session_state.dart';
 import 'camera_shoot_screen.dart';
 import 'result_screen.dart';
@@ -30,18 +30,10 @@ class _PhotoReviewScreenState extends ConsumerState<PhotoReviewScreen> {
 
     setState(() {
       _processing = true;
-      _processStatus = 'Mengunggah foto...';
+      _processStatus = 'Merender hasil komposit frame & foto...';
     });
 
     try {
-      await ref.read(mobileSessionProvider.notifier).uploadAllPhotos();
-
-      if (mounted) {
-        setState(() {
-          _processStatus = 'Memproses & merender template...';
-        });
-      }
-
       await ref.read(mobileSessionProvider.notifier).render();
 
       if (mounted) {
@@ -52,7 +44,7 @@ class _PhotoReviewScreenState extends ConsumerState<PhotoReviewScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal memproses render: $e')),
+          SnackBar(content: Text('Gagal render: $e')),
         );
       }
     } finally {
@@ -71,14 +63,17 @@ class _PhotoReviewScreenState extends ConsumerState<PhotoReviewScreen> {
   @override
   Widget build(BuildContext context) {
     final session = ref.watch(mobileSessionProvider);
-    final stickersAsync = ref.watch(stickersProvider);
     final baseUrl = ref.watch(baseUrlProvider).valueOrNull ?? '';
+    final frame = session.frame ?? FrameModel.defaultFrames.first;
     final photos = session.localPhotos;
     final stickers = session.stickers;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Tinjau & Hias Foto'),
+        title: const Text(
+          'Tinjau Hasil Foto',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         centerTitle: true,
       ),
       body: _processing
@@ -106,7 +101,7 @@ class _PhotoReviewScreenState extends ConsumerState<PhotoReviewScreen> {
                     ),
                     const SizedBox(height: 8),
                     const Text(
-                      'Mohon tunggu sebentar...',
+                      'Menyusun foto ke dalam frame...',
                       style: TextStyle(color: Colors.black54),
                     ),
                   ],
@@ -115,268 +110,216 @@ class _PhotoReviewScreenState extends ConsumerState<PhotoReviewScreen> {
             )
           : Column(
               children: [
-                // Kanvas Preview dengan Stiker yang bisa di-drag
+                // Kanvas Pratinjau Foto di dalam Frame
                 Expanded(
-                  flex: 5,
+                  flex: 7,
                   child: Container(
                     margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: Colors.grey.shade100,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Colors.grey.shade300),
+                      color: Colors.grey.shade200,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.08),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
                     ),
-                    child: LayoutBuilder(
-                      builder: (ctx, constraints) {
-                        final canvasW = constraints.maxWidth;
-                        final canvasH = constraints.maxHeight;
+                    child: Center(
+                      child: AspectRatio(
+                        aspectRatio: frame.aspectRatio,
+                        child: LayoutBuilder(
+                          builder: (ctx, constraints) {
+                            final cw = constraints.maxWidth;
+                            final ch = constraints.maxHeight;
 
-                        return Stack(
-                          children: [
-                            // Grid foto yang diambil
-                            Padding(
-                              padding: const EdgeInsets.all(8),
-                              child: GridView.builder(
-                                gridDelegate:
-                                    const SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: 2,
-                                  crossAxisSpacing: 8,
-                                  mainAxisSpacing: 8,
-                                  childAspectRatio: 0.9,
-                                ),
-                                itemCount: photos.length,
-                                itemBuilder: (ctx, i) {
-                                  return Stack(
-                                    fit: StackFit.expand,
-                                    children: [
-                                      ClipRRect(
-                                        borderRadius: BorderRadius.circular(10),
-                                        child: Image.file(
-                                          File(photos[i]),
-                                          fit: BoxFit.cover,
-                                        ),
-                                      ),
-                                      // Badge nomor foto
-                                      Positioned(
-                                        top: 6,
-                                        left: 6,
-                                        child: Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 6,
-                                            vertical: 2,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: Colors.black54,
-                                            borderRadius:
-                                                BorderRadius.circular(6),
-                                          ),
-                                          child: Text(
-                                            'Slot ${i + 1}',
-                                            style: const TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 10,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                      // Tombol foto ulang (retake)
-                                      Positioned(
-                                        bottom: 6,
-                                        right: 6,
-                                        child: InkWell(
-                                          onTap: () => _retakeSlot(i),
-                                          child: Container(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 8,
-                                              vertical: 4,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color: Colors.black87,
-                                              borderRadius:
-                                                  BorderRadius.circular(20),
-                                            ),
-                                            child: const Row(
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                Icon(
-                                                  Icons.refresh_rounded,
-                                                  size: 14,
-                                                  color: Colors.white,
-                                                ),
-                                                SizedBox(width: 4),
-                                                Text(
-                                                  'Foto Ulang',
-                                                  style: TextStyle(
-                                                    color: Colors.white,
-                                                    fontSize: 11,
-                                                    fontWeight: FontWeight.bold,
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  );
-                                },
-                              ),
-                            ),
-
-                            // Overlay Stiker yang dapat digeser manual (drag and drop)
-                            ...stickers.asMap().entries.map((entry) {
-                              final idx = entry.key;
-                              final placed = entry.value;
-                              final stickerLeft = (placed.dx * canvasW).clamp(0.0, canvasW - 44);
-                              final stickerTop = (placed.dy * canvasH).clamp(0.0, canvasH - 44);
-
-                              return Positioned(
-                                left: stickerLeft,
-                                top: stickerTop,
-                                child: GestureDetector(
-                                  onPanUpdate: (details) {
-                                    final newDx = placed.dx + (details.delta.dx / canvasW);
-                                    final newDy = placed.dy + (details.delta.dy / canvasH);
-                                    ref
-                                        .read(mobileSessionProvider.notifier)
-                                        .updateStickerPos(idx, newDx, newDy);
-                                  },
-                                  child: Stack(
-                                    clipBehavior: Clip.none,
-                                    children: [
-                                      Container(
-                                        padding: const EdgeInsets.all(4),
-                                        decoration: BoxDecoration(
-                                          border: Border.all(
-                                            color: Colors.purple.withValues(alpha: 0.5),
-                                            style: BorderStyle.solid,
-                                          ),
-                                          borderRadius: BorderRadius.circular(8),
-                                        ),
-                                        child: placed.sticker.assetPath != null
-                                            ? Image.network(
-                                                placed.sticker.getAssetUrl(baseUrl)!,
-                                                width: 38,
-                                                height: 38,
-                                                errorBuilder: (_, _, _) => Text(
-                                                  placed.sticker.emoji.isNotEmpty
-                                                      ? placed.sticker.emoji
-                                                      : '⭐',
-                                                  style: const TextStyle(fontSize: 28),
-                                                ),
-                                              )
-                                            : Text(
-                                                placed.sticker.emoji.isNotEmpty
-                                                    ? placed.sticker.emoji
-                                                    : '⭐',
-                                                style: const TextStyle(fontSize: 28),
-                                              ),
-                                      ),
-                                      Positioned(
-                                        top: -6,
-                                        right: -6,
-                                        child: GestureDetector(
-                                          onTap: () => ref
-                                              .read(mobileSessionProvider.notifier)
-                                              .removeSticker(idx),
-                                          child: Container(
-                                            decoration: const BoxDecoration(
-                                              color: Colors.red,
-                                              shape: BoxShape.circle,
-                                            ),
-                                            child: const Icon(
-                                              Icons.close,
-                                              size: 14,
-                                              color: Colors.white,
-                                            ),
-                                          ),
-                                        ),
+                            return Stack(
+                              clipBehavior: Clip.none,
+                              children: [
+                                // Background Frame
+                                Container(
+                                  decoration: BoxDecoration(
+                                    color: frame.backgroundColor,
+                                    borderRadius: BorderRadius.circular(16),
+                                    border: Border.all(
+                                      color: frame.textColor.withValues(alpha: 0.2),
+                                      width: 2,
+                                    ),
+                                    boxShadow: const [
+                                      BoxShadow(
+                                        color: Colors.black12,
+                                        blurRadius: 8,
+                                        offset: Offset(0, 3),
                                       ),
                                     ],
                                   ),
                                 ),
-                              );
-                            }),
-                          ],
-                        );
-                      },
+
+                                // Slot Foto yang terisi
+                                ...frame.effectiveSlots.map((slot) {
+                                  final idx = slot.slotIndex;
+                                  final hasPhoto = idx < photos.length &&
+                                      File(photos[idx]).existsSync();
+
+                                  return Positioned(
+                                    left: slot.x * cw,
+                                    top: slot.y * ch,
+                                    width: slot.width * cw,
+                                    height: slot.height * ch,
+                                    child: Stack(
+                                      fit: StackFit.expand,
+                                      children: [
+                                        ClipRRect(
+                                          borderRadius:
+                                              BorderRadius.circular(10),
+                                          child: hasPhoto
+                                              ? Image.file(
+                                                  File(photos[idx]),
+                                                  fit: BoxFit.cover,
+                                                )
+                                              : Container(
+                                                  color: Colors.grey.shade300,
+                                                  child: const Center(
+                                                    child: Icon(Icons.photo),
+                                                  ),
+                                                ),
+                                        ),
+                                        // Tombol Foto Ulang kecil
+                                        Positioned(
+                                          top: 4,
+                                          right: 4,
+                                          child: InkWell(
+                                            onTap: () => _retakeSlot(idx),
+                                            child: Container(
+                                              padding: const EdgeInsets.symmetric(
+                                                horizontal: 6,
+                                                vertical: 3,
+                                              ),
+                                              decoration: BoxDecoration(
+                                                color: Colors.black87,
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                              ),
+                                              child: const Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Icon(
+                                                    Icons.refresh,
+                                                    size: 11,
+                                                    color: Colors.white,
+                                                  ),
+                                                  SizedBox(width: 3),
+                                                  Text(
+                                                    'Foto Ulang',
+                                                    style: TextStyle(
+                                                      color: Colors.white,
+                                                      fontSize: 9,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                }),
+
+                                // Footer Branding
+                                Positioned(
+                                  bottom: ch * 0.02,
+                                  left: 0,
+                                  right: 0,
+                                  child: Text(
+                                    frame.footerText ?? 'POV STUDIO',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      color: frame.textColor,
+                                      fontSize: cw * 0.06,
+                                      fontWeight: FontWeight.w900,
+                                      letterSpacing: 2.0,
+                                    ),
+                                  ),
+                                ),
+
+                                // Stiker yang sudah terpasang
+                                ...stickers.asMap().entries.map((entry) {
+                                  final placed = entry.value;
+                                  final stLeft =
+                                      (placed.dx * cw).clamp(0.0, cw - 36);
+                                  final stTop =
+                                      (placed.dy * ch).clamp(0.0, ch - 36);
+
+                                  return Positioned(
+                                    left: stLeft,
+                                    top: stTop,
+                                    child: placed.sticker.assetPath != null
+                                        ? Image.network(
+                                            placed.sticker.getAssetUrl(baseUrl)!,
+                                            width: 32,
+                                            height: 32,
+                                            errorBuilder: (_, _, _) => Text(
+                                              placed.sticker.emoji.isNotEmpty
+                                                  ? placed.sticker.emoji
+                                                  : '✨',
+                                              style:
+                                                  const TextStyle(fontSize: 24),
+                                            ),
+                                          )
+                                        : Text(
+                                            placed.sticker.emoji.isNotEmpty
+                                                ? placed.sticker.emoji
+                                                : '✨',
+                                            style:
+                                                const TextStyle(fontSize: 24),
+                                          ),
+                                  );
+                                }),
+                              ],
+                            );
+                          },
+                        ),
+                      ),
                     ),
                   ),
                 ),
 
-                // Petunjuk & Panel Stiker
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                // Petunjuk & Slot Carousel untuk Retake
+                Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                   child: Row(
                     children: [
-                      Icon(Icons.touch_app, size: 16, color: Colors.purple),
-                      SizedBox(width: 6),
+                      const Icon(Icons.info_outline,
+                          size: 16, color: Colors.purple),
+                      const SizedBox(width: 6),
                       Text(
-                        'Tap stiker untuk menambah, geser langsung di atas foto',
-                        style: TextStyle(fontSize: 12, color: Colors.black54),
+                        'Total ${photos.length} foto siap dicetak & diunduh.',
+                        style: const TextStyle(
+                            fontSize: 12, color: Colors.black54),
                       ),
-                    ],
-                  ),
-                ),
-
-                // Daftar Stiker yang bisa dipilih (Horizontal Picker)
-                Container(
-                  height: 64,
-                  padding: const EdgeInsets.symmetric(vertical: 4),
-                  child: stickersAsync.when(
-                    loading: () => ListView.separated(
-                      scrollDirection: Axis.horizontal,
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      itemCount: kStickers.length,
-                      separatorBuilder: (_, _) => const SizedBox(width: 8),
-                      itemBuilder: (ctx, i) {
-                        final s = kStickers[i];
-                        return _StickerChip(
-                          sticker: s,
-                          onTap: () => ref
-                              .read(mobileSessionProvider.notifier)
-                              .addSticker(s),
-                        );
-                      },
-                    ),
-                    error: (_, _) => ListView.separated(
-                      scrollDirection: Axis.horizontal,
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      itemCount: kStickers.length,
-                      separatorBuilder: (_, _) => const SizedBox(width: 8),
-                      itemBuilder: (ctx, i) {
-                        final s = kStickers[i];
-                        return _StickerChip(
-                          sticker: s,
-                          onTap: () => ref
-                              .read(mobileSessionProvider.notifier)
-                              .addSticker(s),
-                        );
-                      },
-                    ),
-                    data: (apiStickers) {
-                      final allStickers = [
-                        ...apiStickers,
-                        ...kStickers.where(
-                          (ks) => !apiStickers.any((as) => as.name == ks.name),
-                        ),
-                      ];
-                      return ListView.separated(
-                        scrollDirection: Axis.horizontal,
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        itemCount: allStickers.length,
-                        separatorBuilder: (_, _) => const SizedBox(width: 8),
-                        itemBuilder: (ctx, i) {
-                          final s = allStickers[i];
-                          return _StickerChip(
-                            sticker: s,
-                            baseUrl: baseUrl,
-                            onTap: () => ref
-                                .read(mobileSessionProvider.notifier)
-                                .addSticker(s),
+                      const Spacer(),
+                      TextButton.icon(
+                        onPressed: () {
+                          // Opsi retake seluruh foto
+                          Navigator.of(context).pushReplacement(
+                            MaterialPageRoute(
+                              builder: (_) => const CameraShootScreen(),
+                            ),
                           );
                         },
-                      );
-                    },
+                        icon: const Icon(Icons.replay, size: 14),
+                        label: const Text(
+                          'Ulang Semua',
+                          style: TextStyle(fontSize: 11),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
 
@@ -406,9 +349,9 @@ class _PhotoReviewScreenState extends ConsumerState<PhotoReviewScreen> {
                             borderRadius: BorderRadius.circular(14),
                           ),
                         ),
-                        icon: const Icon(Icons.auto_awesome),
+                        icon: const Icon(Icons.check_circle_outline),
                         label: const Text(
-                          'Cetak & Buat QR Foto',
+                          'Selesai & Buat Hasil Foto',
                           style: TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.bold,
@@ -420,53 +363,6 @@ class _PhotoReviewScreenState extends ConsumerState<PhotoReviewScreen> {
                 ),
               ],
             ),
-    );
-  }
-}
-
-class _StickerChip extends StatelessWidget {
-  final StickerModel sticker;
-  final String? baseUrl;
-  final VoidCallback onTap;
-
-  const _StickerChip({
-    required this.sticker,
-    this.baseUrl,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final assetUrl = baseUrl != null ? sticker.getAssetUrl(baseUrl!) : null;
-
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        width: 56,
-        padding: const EdgeInsets.all(6),
-        decoration: BoxDecoration(
-          color: Colors.purple.shade50,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.purple.shade100),
-        ),
-        child: Center(
-          child: assetUrl != null
-              ? Image.network(
-                  assetUrl,
-                  width: 32,
-                  height: 32,
-                  errorBuilder: (_, _, _) => Text(
-                    sticker.emoji.isNotEmpty ? sticker.emoji : '✨',
-                    style: const TextStyle(fontSize: 22),
-                  ),
-                )
-              : Text(
-                  sticker.emoji.isNotEmpty ? sticker.emoji : '✨',
-                  style: const TextStyle(fontSize: 22),
-                ),
-        ),
-      ),
     );
   }
 }
