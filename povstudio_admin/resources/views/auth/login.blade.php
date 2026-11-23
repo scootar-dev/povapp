@@ -13,6 +13,10 @@
 
     <script src="https://cdn.tailwindcss.com"></script>
 
+    @if (!empty($recaptchaSiteKey))
+        <script src="https://www.google.com/recaptcha/api.js?hl=id" async defer></script>
+    @endif
+
     <style>
 
         * {
@@ -448,6 +452,32 @@
             font-size: 14px;
         }
 
+        /* CAPTCHA */
+        .captcha-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            margin: 0 0 22px;
+        }
+
+        .captcha-error {
+            color: #d52b5f;
+            font-size: 14px;
+            margin: 0;
+            text-align: center;
+        }
+
+        .captcha-notice {
+            background: #fff0f3;
+            border: 1px solid #ffc9d7;
+            color: #d52b5f;
+            border-radius: 15px;
+            padding: 12px 15px;
+            font-size: 14px;
+            text-align: center;
+        }
+
         /* FOOTER */
         .footer {
             position: absolute;
@@ -700,7 +730,7 @@
 
 
                     <!-- FORM -->
-                    <form action="{{ route('login.process') }}" method="POST">
+                    <form action="{{ route('login.process') }}" method="POST" id="login-form">
 
                         @csrf
 
@@ -803,6 +833,28 @@
                         </div>
 
 
+                        <div class="captcha-wrapper">
+                            @if (!empty($recaptchaSiteKey))
+                                <div
+                                    class="g-recaptcha"
+                                    data-sitekey="{{ $recaptchaSiteKey }}"
+                                    data-callback="onCaptchaSuccess"
+                                    data-expired-callback="onCaptchaExpired"
+                                ></div>
+                            @else
+                                <div class="captcha-notice">
+                                    CAPTCHA belum dikonfigurasi. Hubungi administrator.
+                                </div>
+                            @endif
+
+                            @error('captcha')
+                                <p class="captcha-error">{{ $message }}</p>
+                            @enderror
+
+                            <p class="captcha-error" id="captcha-js-error" style="display:none;"></p>
+                        </div>
+
+
                         <!-- LOGIN -->
                         <button
                             type="submit"
@@ -870,6 +922,55 @@
         }
 
     }
+
+</script>
+
+<script>
+
+    function onCaptchaSuccess() {
+        var el = document.getElementById('captcha-js-error');
+        if (el) {
+            el.style.display = 'none';
+            el.textContent = '';
+        }
+    }
+
+    function onCaptchaExpired() {
+        var el = document.getElementById('captcha-js-error');
+        if (el) {
+            el.textContent = 'CAPTCHA kedaluwarsa. Silakan centang ulang.';
+            el.style.display = 'block';
+        }
+    }
+
+    (function () {
+        var form = document.getElementById('login-form');
+        if (!form) {
+            return;
+        }
+
+        form.addEventListener('submit', function (e) {
+            if (typeof grecaptcha === 'undefined') {
+                return;
+            }
+
+            var token = '';
+            try {
+                token = grecaptcha.getResponse();
+            } catch (err) {
+                token = '';
+            }
+
+            if (!token) {
+                e.preventDefault();
+                var el = document.getElementById('captcha-js-error');
+                if (el) {
+                    el.textContent = 'Silakan centang verifikasi CAPTCHA terlebih dahulu.';
+                    el.style.display = 'block';
+                }
+            }
+        });
+    })();
 
 </script>
 

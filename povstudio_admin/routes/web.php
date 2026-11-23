@@ -28,6 +28,7 @@ Route::get('/login', [AuthController::class, 'showLogin'])
     ->name('login');
 
 Route::post('/login', [AuthController::class, 'login'])
+    ->middleware('throttle:login')
     ->name('login.process');
 
 Route::get('/register', [AuthController::class, 'showRegister'])
