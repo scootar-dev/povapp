@@ -158,9 +158,13 @@ class _CameraShootScreenState extends ConsumerState<CameraShootScreen> {
       }
 
       if (widget.retakeSlotIndex != null) {
-        ref.read(mobileSessionProvider.notifier).retakePhoto(slotIndex, path);
+        await ref
+            .read(mobileSessionProvider.notifier)
+            .retakePhotoPath(slotIndex, path);
       } else {
-        ref.read(mobileSessionProvider.notifier).addLocalPhoto(path);
+        await ref
+            .read(mobileSessionProvider.notifier)
+            .addLocalPhotoPath(path);
       }
       return true;
     } catch (e) {
@@ -179,12 +183,12 @@ class _CameraShootScreenState extends ConsumerState<CameraShootScreen> {
 
     final notifier = ref.read(mobileSessionProvider.notifier);
     if (widget.retakeSlotIndex != null) {
-      notifier.retakePhoto(widget.retakeSlotIndex!, x.path);
+      await notifier.retakePhotoPath(widget.retakeSlotIndex!, x.path);
       if (mounted) Navigator.of(context).pop();
       return;
     }
 
-    notifier.addLocalPhoto(x.path);
+    await notifier.addLocalPhotoPath(x.path);
     final currentCount = ref.read(mobileSessionProvider).localPhotos.length;
     final totalSlots = ref.read(mobileSessionProvider).frame?.photoCount ?? 3;
 

@@ -1,97 +1,42 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../models/frame_model.dart';
-import '../models/sticker_model.dart';
 import '../state/session_state.dart';
-<<<<<<< HEAD
-import 'camera_shoot_screen.dart';
-=======
 import '../widgets/server_dialog.dart';
 import 'shoot_mobile_screen.dart';
->>>>>>> refs/remotes/origin/main
 
 class FrameStickerScreen extends ConsumerStatefulWidget {
   const FrameStickerScreen({super.key});
-
   @override
   ConsumerState<FrameStickerScreen> createState() => _FrameStickerScreenState();
 }
 
 class _FrameStickerScreenState extends ConsumerState<FrameStickerScreen>
     with SingleTickerProviderStateMixin {
-  late TabController _tabCtrl;
-  bool _starting = false;
+  late TabController _tab;
 
   @override
   void initState() {
     super.initState();
-    _tabCtrl = TabController(length: 2, vsync: this);
+    _tab = TabController(length: 2, vsync: this);
   }
 
   @override
   void dispose() {
-    _tabCtrl.dispose();
+    _tab.dispose();
     super.dispose();
-  }
-
-  Future<void> _proceedToCamera() async {
-    setState(() => _starting = true);
-    try {
-      await ref.read(mobileSessionProvider.notifier).startSession();
-      if (mounted) {
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => const CameraShootScreen(),
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Catatan: $e')),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _starting = false);
-    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final session = ref.watch(mobileSessionProvider);
     final framesAsync = ref.watch(framesProvider);
     final stickersAsync = ref.watch(stickersProvider);
     final baseUrl = ref.watch(baseUrlProvider).valueOrNull ?? '';
-
-    final frame = session.frame ?? FrameModel.defaultFrames.first;
+    final session = ref.watch(mobileSessionProvider);
+    final selectedFrame = session.frame;
     final stickers = session.stickers;
 
     return Scaffold(
       appBar: AppBar(
-<<<<<<< HEAD
-        title: const Text(
-          'Desain Frame & Stiker',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        centerTitle: true,
-      ),
-      body: Column(
-        children: [
-          // 1. KANVAS INTERAKTIF FRAME DI ATAS
-          Expanded(
-            flex: 6,
-            child: Container(
-              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade200,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.08),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-=======
         title: const Text('Pilih Frame & Stiker'),
         actions: [
           IconButton(
@@ -100,523 +45,367 @@ class _FrameStickerScreenState extends ConsumerState<FrameStickerScreen>
             onPressed: () => showServerSettingsDialog(context, ref),
           ),
         ],
-        bottom: TabBar(controller: _tab, tabs: const [Tab(icon: Icon(Icons.dashboard), text: 'Template'), Tab(icon: Icon(Icons.brush), text: 'Kustom')]),
+        bottom: TabBar(
+          controller: _tab,
+          tabs: const [
+            Tab(icon: Icon(Icons.dashboard), text: 'Template'),
+            Tab(icon: Icon(Icons.brush), text: 'Kustom'),
+          ],
+        ),
       ),
       body: Column(
         children: [
-          // Preview kustom
           Container(
             height: 140,
             margin: const EdgeInsets.all(12),
-            decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey.shade300)),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade100,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey.shade300),
+            ),
             child: Stack(
               children: [
-                Center(child: selectedFrame == null ? const Text('Pilih frame dulu', style: TextStyle(color: Colors.black54)) : Column(mainAxisSize: MainAxisSize.min, children: [Icon(Icons.filter_frames, size: 32, color: Colors.deepPurple), Text(selectedFrame.name, style: TextStyle(fontWeight: FontWeight.bold)), Text('${selectedFrame.photoCount} foto')])),
+                Center(
+                  child: selectedFrame == null
+                      ? const Text('Pilih frame dulu',
+                          style: TextStyle(color: Colors.black54))
+                      : Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.filter_frames,
+                                size: 32, color: Colors.deepPurple),
+                            Text(selectedFrame.name,
+                                style:
+                                    const TextStyle(fontWeight: FontWeight.bold)),
+                            Text('${selectedFrame.photoCount} foto'),
+                          ],
+                        ),
+                ),
                 ...stickers.asMap().entries.map((e) => Positioned(
-                  left: e.value.dx * 260, top: e.value.dy * 100,
-                  child: GestureDetector(
-                    onPanUpdate: (d) => ref.read(mobileSessionProvider.notifier).updateStickerPos(e.key, (e.value.dx + d.delta.dx/300).clamp(0.0, 0.85), (e.value.dy + d.delta.dy/120).clamp(0.0, 0.85)),
-                    child: e.value.sticker.assetPath != null
-                        ? Image.network(e.value.sticker.getAssetUrl(baseUrl)!, width: 40, height: 40, errorBuilder: (_, __, ___) => const Icon(Icons.auto_awesome, size: 28))
-                        : const Icon(Icons.auto_awesome, size: 28),
->>>>>>> refs/remotes/origin/main
-                  ),
-                ],
-              ),
-              child: Center(
-                child: AspectRatio(
-                  aspectRatio: frame.aspectRatio,
-                  child: LayoutBuilder(
-                    builder: (ctx, constraints) {
-                      final cw = constraints.maxWidth;
-                      final ch = constraints.maxHeight;
-
-                      return Stack(
-                        clipBehavior: Clip.none,
-                        children: [
-                          // Background Frame
-                          Container(
-                            decoration: BoxDecoration(
-                              color: frame.backgroundColor,
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(
-                                color: frame.textColor.withValues(alpha: 0.2),
-                                width: 2,
-                              ),
-                              boxShadow: const [
-                                BoxShadow(
-                                  color: Colors.black12,
-                                  blurRadius: 8,
-                                  offset: Offset(0, 3),
-                                ),
-                              ],
+                      left: e.value.dx * 260,
+                      top: e.value.dy * 100,
+                      child: GestureDetector(
+                        onPanUpdate: (d) => ref
+                            .read(mobileSessionProvider.notifier)
+                            .updateStickerPos(
+                              e.key,
+                              (e.value.dx + d.delta.dx / 300).clamp(0.0, 0.85),
+                              (e.value.dy + d.delta.dy / 120).clamp(0.0, 0.85),
                             ),
-                          ),
-
-                          // Slot-slot foto
-                          ...frame.effectiveSlots.map((slot) {
-                            return Positioned(
-                              left: slot.x * cw,
-                              top: slot.y * ch,
-                              width: slot.width * cw,
-                              height: slot.height * ch,
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  color: Colors.grey.shade300,
-                                  borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(
-                                    color: Colors.grey.shade500,
-                                    width: 1.5,
-                                  ),
-                                ),
-                                child: Center(
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(
-                                        Icons.add_a_photo_outlined,
-                                        size: cw * 0.12,
-                                        color: Colors.grey.shade700,
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        'Slot ${slot.slotIndex + 1}',
-                                        style: TextStyle(
-                                          fontSize: cw * 0.065,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.grey.shade800,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            );
-                          }),
-
-                          // Branding Footer Text
-                          Positioned(
-                            bottom: ch * 0.02,
-                            left: 0,
-                            right: 0,
-                            child: Text(
-                              frame.footerText ?? 'POV STUDIO',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                color: frame.textColor,
-                                fontSize: cw * 0.06,
-                                fontWeight: FontWeight.w900,
-                                letterSpacing: 2.0,
-                              ),
-                            ),
-                          ),
-
-                          // Stiker yang ditempatkan (dapat digeser manual)
-                          ...stickers.asMap().entries.map((entry) {
-                            final idx = entry.key;
-                            final placed = entry.value;
-                            final stLeft = (placed.dx * cw).clamp(0.0, cw - 36);
-                            final stTop = (placed.dy * ch).clamp(0.0, ch - 36);
-
-                            return Positioned(
-                              left: stLeft,
-                              top: stTop,
-                              child: GestureDetector(
-                                onPanUpdate: (d) {
-                                  final newDx = placed.dx + (d.delta.dx / cw);
-                                  final newDy = placed.dy + (d.delta.dy / ch);
-                                  ref
-                                      .read(mobileSessionProvider.notifier)
-                                      .updateStickerPos(idx, newDx, newDy);
-                                },
-                                child: Stack(
-                                  clipBehavior: Clip.none,
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.all(4),
-                                      decoration: BoxDecoration(
-                                        color: Colors.white.withValues(alpha: 0.3),
-                                        borderRadius: BorderRadius.circular(8),
-                                        border: Border.all(
-                                          color: Colors.purple.shade300,
-                                        ),
-                                      ),
-                                      child: placed.sticker.assetPath != null
-                                          ? Image.network(
-                                              placed.sticker.getAssetUrl(baseUrl)!,
-                                              width: 34,
-                                              height: 34,
-                                              errorBuilder: (_, _, _) => Text(
-                                                placed.sticker.emoji.isNotEmpty
-                                                    ? placed.sticker.emoji
-                                                    : '✨',
-                                                style: const TextStyle(fontSize: 26),
-                                              ),
-                                            )
-                                          : Text(
-                                              placed.sticker.emoji.isNotEmpty
-                                                  ? placed.sticker.emoji
-                                                  : '✨',
-                                              style: const TextStyle(fontSize: 26),
-                                            ),
-                                    ),
-                                    Positioned(
-                                      top: -6,
-                                      right: -6,
-                                      child: GestureDetector(
-                                        onTap: () => ref
-                                            .read(mobileSessionProvider.notifier)
-                                            .removeSticker(idx),
-                                        child: Container(
-                                          padding: const EdgeInsets.all(2),
-                                          decoration: const BoxDecoration(
-                                            color: Colors.red,
-                                            shape: BoxShape.circle,
-                                          ),
-                                          child: const Icon(
-                                            Icons.close,
-                                            size: 12,
-                                            color: Colors.white,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            );
-                          }),
-                        ],
-                      );
-                    },
-                  ),
-                ),
-              ),
-            ),
-          ),
-
-          // 2. TAB CONTROLLER: PILIH FRAME / TAMBAH STIKER
-          TabBar(
-            controller: _tabCtrl,
-            indicatorColor: const Color(0xFF6A1FB8),
-            labelColor: const Color(0xFF6A1FB8),
-            unselectedLabelColor: Colors.black54,
-            tabs: const [
-              Tab(icon: Icon(Icons.dashboard_customize_outlined), text: 'Pilih Frame'),
-              Tab(icon: Icon(Icons.emoji_emotions_outlined), text: 'Tambah Stiker'),
-            ],
-          ),
-
-          // 3. TAB VIEW ISI KONTEN
-          Expanded(
-            flex: 4,
-            child: TabBarView(
-              controller: _tabCtrl,
-              children: [
-                // TAB 1: GRID FRAME
-                framesAsync.when(
-                  loading: () => const Center(child: CircularProgressIndicator()),
-                  error: (_, _) => _buildFrameList(FrameModel.defaultFrames, frame),
-                  data: (frames) => _buildFrameList(frames, frame),
-                ),
-
-                // TAB 2: GRID STIKER
-                stickersAsync.when(
-                  loading: () => const Center(child: CircularProgressIndicator()),
-                  error: (_, _) => _buildStickerList(kStickers, baseUrl),
-                  data: (stks) => _buildStickerList(stks, baseUrl),
-                ),
+                        child: e.value.sticker.assetPath != null
+                            ? Image.network(
+                                e.value.sticker.getAssetUrl(baseUrl)!,
+                                width: 40,
+                                height: 40,
+                                errorBuilder: (_, __, ___) => const Icon(
+                                    Icons.auto_awesome,
+                                    size: 28),
+                              )
+                            : const Icon(Icons.auto_awesome, size: 28),
+                      ),
+                    )),
               ],
             ),
           ),
-
-          // 4. TOMBOL LANJUT KE KAMERA
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.06),
-                  blurRadius: 8,
-                  offset: const Offset(0, -3),
-                ),
-              ],
+          if (stickers.isNotEmpty)
+            SizedBox(
+              height: 40,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                children: stickers
+                    .map((p) => Chip(
+                          label: Text(p.sticker.name),
+                          onDeleted: () => ref
+                              .read(mobileSessionProvider.notifier)
+                              .toggleSticker(p.sticker),
+                        ))
+                    .toList(),
+              ),
             ),
-<<<<<<< HEAD
-            child: SafeArea(
-              top: false,
-              child: SizedBox(
-                width: double.infinity,
-                height: 52,
-                child: FilledButton.icon(
-                  onPressed: _starting ? null : _proceedToCamera,
-                  style: FilledButton.styleFrom(
-                    backgroundColor: const Color(0xFF6A1FB8),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                  ),
-                  icon: _starting
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-=======
           Expanded(
             child: TabBarView(controller: _tab, children: [
-              // TEMPLATE TAB: grid frame dari admin
               framesAsync.when(
-                loading: ()=> const Center(child: CircularProgressIndicator()),
-                error: (e,_)=> Center(child: Padding(padding: const EdgeInsets.all(16), child: Column(mainAxisSize: MainAxisSize.min, children: [
-                  const Icon(Icons.cloud_off, size: 48, color: Colors.redAccent),
-                  const SizedBox(height: 8),
-                  Text('Gagal terhubung ke server', textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                  const SizedBox(height: 4),
-                  Text('$e', textAlign: TextAlign.center, style: const TextStyle(fontSize: 12, color: Colors.black54)),
-                  const SizedBox(height: 4),
-                  Text('Server URL: $baseUrl', style: const TextStyle(fontSize: 11, color: Colors.blueGrey), textAlign: TextAlign.center),
-                  const SizedBox(height: 12),
-                  Wrap(spacing: 8, alignment: WrapAlignment.center, children: [
-                    FilledButton.icon(icon: const Icon(Icons.refresh, size: 16), onPressed: ()=>ref.invalidate(framesProvider), label: const Text('Coba Lagi')),
-                    OutlinedButton.icon(icon: const Icon(Icons.settings_ethernet, size: 16), label: const Text('Ubah IP Server'), onPressed: () => showServerSettingsDialog(context, ref)),
-                  ]),
-                ]))),
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (e, _) => Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.cloud_off,
+                            size: 48, color: Colors.redAccent),
+                        const SizedBox(height: 8),
+                        const Text('Gagal terhubung ke server',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 16)),
+                        const SizedBox(height: 4),
+                        Text('$e',
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                                fontSize: 12, color: Colors.black54)),
+                        const SizedBox(height: 4),
+                        Text('Server URL: $baseUrl',
+                            style: const TextStyle(
+                                fontSize: 11, color: Colors.blueGrey),
+                            textAlign: TextAlign.center),
+                        const SizedBox(height: 12),
+                        Wrap(
+                          spacing: 8,
+                          alignment: WrapAlignment.center,
+                          children: [
+                            FilledButton.icon(
+                              icon: const Icon(Icons.refresh, size: 16),
+                              onPressed: () => ref.invalidate(framesProvider),
+                              label: const Text('Coba Lagi'),
+                            ),
+                            OutlinedButton.icon(
+                              icon: const Icon(Icons.settings_ethernet, size: 16),
+                              label: const Text('Ubah IP Server'),
+                              onPressed: () =>
+                                  showServerSettingsDialog(context, ref),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
                 data: (frames) => GridView.builder(
                   padding: const EdgeInsets.all(12),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, childAspectRatio: 0.85, crossAxisSpacing: 12, mainAxisSpacing: 12),
+                  gridDelegate:
+                      const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    childAspectRatio: 0.85,
+                    crossAxisSpacing: 12,
+                    mainAxisSpacing: 12,
+                  ),
                   itemCount: frames.length,
                   itemBuilder: (_, i) {
                     final f = frames[i];
                     final sel = selectedFrame?.id == f.id;
                     return GestureDetector(
-                      onTap: ()=>ref.read(mobileSessionProvider.notifier).selectFrame(f),
+                      onTap: () => ref
+                          .read(mobileSessionProvider.notifier)
+                          .selectFrame(f),
                       child: Container(
-                        decoration: BoxDecoration(border: Border.all(color: sel? Colors.deepPurple: Colors.grey.shade300, width: sel?3:1), borderRadius: BorderRadius.circular(12)),
-                        child: Column(children: [
-                          Expanded(child: f.thumbnailPath != null ? Image.network(f.getThumbnailUrl(baseUrl)!, fit: BoxFit.cover, width: double.infinity, errorBuilder: (_, __, ___)=> const Icon(Icons.image)) : const Icon(Icons.filter_frames, size: 48)),
-                          Padding(padding: const EdgeInsets.all(8), child: Text(f.name, style: TextStyle(fontWeight: sel?FontWeight.bold:FontWeight.normal))),
-                          Text('${f.photoCount} foto', style: const TextStyle(fontSize: 11)),
-                          if (sel) const Icon(Icons.check_circle, color: Colors.deepPurple, size: 16),
-                        ]),
+                        decoration: BoxDecoration(
+                          border: Border.all(
+                            color: sel ? Colors.deepPurple : Colors.grey.shade300,
+                            width: sel ? 3 : 1,
+                          ),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Column(
+                          children: [
+                            Expanded(
+                              child: f.thumbnailPath != null
+                                  ? Image.network(
+                                      f.getThumbnailUrl(baseUrl)!,
+                                      fit: BoxFit.cover,
+                                      width: double.infinity,
+                                      errorBuilder: (_, __, ___) => const Icon(
+                                          Icons.image),
+                                    )
+                                  : const Icon(Icons.filter_frames, size: 48),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.all(8),
+                              child: Text(
+                                f.name,
+                                style: TextStyle(
+                                    fontWeight:
+                                        sel ? FontWeight.bold : FontWeight.normal),
+                              ),
+                            ),
+                            Text('${f.photoCount} foto',
+                                style: const TextStyle(fontSize: 11)),
+                            if (sel)
+                              const Icon(Icons.check_circle,
+                                  color: Colors.deepPurple, size: 16),
+                          ],
+                        ),
                       ),
                     );
                   },
                 ),
               ),
-              // KUSTOM TAB: frame list kecil + sticker picker
-              Column(children: [
-                Expanded(
-                  child: framesAsync.when(
-                    loading: ()=> const Center(child: CircularProgressIndicator()),
-                    error: (e,_)=> Center(child: Column(mainAxisSize: MainAxisSize.min, children: [Text('Error $e', textAlign: TextAlign.center), const SizedBox(height: 8), FilledButton(onPressed: ()=>ref.invalidate(framesProvider), child: const Text('Retry'))])),
-                    data: (frames) => GridView.builder(
-                      padding: const EdgeInsets.all(12),
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, childAspectRatio: 0.75, crossAxisSpacing: 8, mainAxisSpacing: 8),
-                      itemCount: frames.length,
-                      itemBuilder: (_, i) {
-                        final f = frames[i];
-                        final sel = selectedFrame?.id == f.id;
-                        return InkWell(onTap: ()=>ref.read(mobileSessionProvider.notifier).selectFrame(f), child: Container(decoration: BoxDecoration(border: Border.all(color: sel? Colors.deepPurple: Colors.grey.shade300, width: sel?2:1), borderRadius: BorderRadius.circular(8)), child: Column(children: [Expanded(child: Icon(Icons.filter_frames, color: sel? Colors.deepPurple: Colors.black54)), Text(f.name, style: const TextStyle(fontSize: 10), textAlign: TextAlign.center)])));
+              Column(
+                children: [
+                  Expanded(
+                    child: framesAsync.when(
+                      loading: () =>
+                          const Center(child: CircularProgressIndicator()),
+                      error: (e, _) => Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text('Error $e', textAlign: TextAlign.center),
+                            const SizedBox(height: 8),
+                            FilledButton(
+                              onPressed: () => ref.invalidate(framesProvider),
+                              child: const Text('Retry'),
+                            ),
+                          ],
+                        ),
+                      ),
+                      data: (frames) => GridView.builder(
+                        padding: const EdgeInsets.all(12),
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 3,
+                          childAspectRatio: 0.75,
+                          crossAxisSpacing: 8,
+                          mainAxisSpacing: 8,
+                        ),
+                        itemCount: frames.length,
+                        itemBuilder: (_, i) {
+                          final f = frames[i];
+                          final sel = selectedFrame?.id == f.id;
+                          return InkWell(
+                            onTap: () => ref
+                                .read(mobileSessionProvider.notifier)
+                                .selectFrame(f),
+                            child: Container(
+                              decoration: BoxDecoration(
+                                border: Border.all(
+                                  color: sel
+                                      ? Colors.deepPurple
+                                      : Colors.grey.shade300,
+                                  width: sel ? 2 : 1,
+                                ),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Column(
+                                children: [
+                                  Expanded(
+                                    child: Icon(Icons.filter_frames,
+                                        color: sel
+                                            ? Colors.deepPurple
+                                            : Colors.black54),
+                                  ),
+                                  Text(
+                                    f.name,
+                                    style: const TextStyle(fontSize: 10),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                  const Divider(),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 12),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        'Pilih Stiker (tap untuk tambah, drag di preview untuk pindah)',
+                        style: TextStyle(fontSize: 11, color: Colors.black54),
+                      ),
+                    ),
+                  ),
+                  SizedBox(
+                    height: 80,
+                    child: stickersAsync.when(
+                      loading: () => const Center(
+                          child: CircularProgressIndicator()),
+                      error: (e, _) => Center(child: Text('Gagal load stiker: $e')),
+                      data: (apiStickers) => GridView.builder(
+                        scrollDirection: Axis.horizontal,
+                        padding: const EdgeInsets.all(8),
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 1,
+                          mainAxisSpacing: 8,
+                        ),
+                        itemCount: apiStickers.length,
+                        itemBuilder: (_, i) {
+                          final s = apiStickers[i];
+                          final chosen =
+                              stickers.any((p) => p.sticker.id == s.id);
+                          return GestureDetector(
+                            onTap: () => ref
+                                .read(mobileSessionProvider.notifier)
+                                .toggleSticker(s),
+                            child: Container(
+                              width: 60,
+                              decoration: BoxDecoration(
+                                color: chosen
+                                    ? Colors.deepPurple.withValues(alpha: 0.15)
+                                    : Colors.grey.shade100,
+                                border: Border.all(
+                                  color: chosen
+                                      ? Colors.deepPurple
+                                      : Colors.grey.shade300,
+                                ),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  s.assetPath != null
+                                      ? Image.network(
+                                          s.getAssetUrl(baseUrl)!,
+                                          width: 28,
+                                          height: 28,
+                                          errorBuilder: (_, __, ___) =>
+                                              const Icon(Icons.auto_awesome,
+                                                  size: 24),
+                                        )
+                                      : const Icon(Icons.auto_awesome, size: 24),
+                                  Text(
+                                    s.name,
+                                    style: const TextStyle(fontSize: 9),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ]),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: selectedFrame == null
+                    ? null
+                    : () async {
+                        try {
+                          await ref
+                              .read(mobileSessionProvider.notifier)
+                              .startSession();
+                          if (context.mounted) {
+                            Navigator.of(context).push(MaterialPageRoute(
+                                builder: (_) => const ShootMobileScreen()));
+                          }
+                        } catch (e) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Gagal mulai sesi: $e')));
+                          }
+                        }
                       },
-                    ),
-                  ),
-                ),
-                const Divider(),
-                const Padding(padding: EdgeInsets.symmetric(horizontal: 12), child: Align(alignment: Alignment.centerLeft, child: Text('Pilih Stiker (tap untuk tambah, drag di preview untuk pindah)', style: TextStyle(fontSize: 11, color: Colors.black54)))),
-                SizedBox(
-                  height: 80,
-                  child: stickersAsync.when(
-                    loading: () => const Center(child: CircularProgressIndicator()),
-                    error: (e, _) => Center(child: Text('Gagal load stiker: $e')),
-                    data: (apiStickers) => GridView.builder(
-                      scrollDirection: Axis.horizontal,
-                      padding: const EdgeInsets.all(8),
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 1, mainAxisSpacing: 8),
-                      itemCount: apiStickers.length,
-                      itemBuilder: (_, i) {
-                        final s = apiStickers[i];
-                        final chosen = stickers.any((p) => p.sticker.id == s.id);
-                        return GestureDetector(
-                          onTap: () => ref.read(mobileSessionProvider.notifier).toggleSticker(s),
-                          child: Container(
-                            width: 60,
-                            decoration: BoxDecoration(color: chosen ? Colors.deepPurple.withValues(alpha: 0.15) : Colors.grey.shade100, border: Border.all(color: chosen ? Colors.deepPurple : Colors.grey.shade300), borderRadius: BorderRadius.circular(8)),
-                            child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                              s.assetPath != null
-                                  ? Image.network(s.getAssetUrl(baseUrl)!, width: 28, height: 28, errorBuilder: (_, __, ___) => const Icon(Icons.auto_awesome, size: 24))
-                                  : const Icon(Icons.auto_awesome, size: 24),
-                              Text(s.name, style: const TextStyle(fontSize: 9)),
-                            ]),
->>>>>>> refs/remotes/origin/main
-                          ),
-                        )
-                      : const Icon(Icons.camera_alt),
-                  label: Text(
-                    'Lanjut ke Kamera (${frame.photoCount} Foto)',
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                child: const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 14),
+                  child: Text('Lanjut Foto'),
                 ),
               ),
             ),
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildFrameList(List<FrameModel> frames, FrameModel selectedFrame) {
-    return ListView.separated(
-      scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      itemCount: frames.length,
-      separatorBuilder: (_, _) => const SizedBox(width: 12),
-      itemBuilder: (ctx, i) {
-        final f = frames[i];
-        final isSelected = f.id == selectedFrame.id;
-
-        return GestureDetector(
-          onTap: () => ref.read(mobileSessionProvider.notifier).selectFrame(f),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            width: 130,
-            decoration: BoxDecoration(
-              color: f.backgroundColor,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(
-                color: isSelected ? const Color(0xFF6A1FB8) : Colors.grey.shade400,
-                width: isSelected ? 3 : 1,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: isSelected
-                      ? const Color(0xFF6A1FB8).withValues(alpha: 0.25)
-                      : Colors.black.withValues(alpha: 0.05),
-                  blurRadius: isSelected ? 8 : 4,
-                  offset: const Offset(0, 3),
-                ),
-              ],
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                // Miniatur Visual Frame
-                Container(
-                  width: 44,
-                  height: 54,
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade200,
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: Colors.grey.shade400),
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: List.generate(
-                      f.photoCount.clamp(1, 4),
-                      (_) => Container(
-                        width: 32,
-                        height: 7,
-                        decoration: BoxDecoration(
-                          color: f.textColor.withValues(alpha: 0.4),
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 6),
-                  child: Text(
-                    f.name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-                      color: isSelected ? const Color(0xFF6A1FB8) : Colors.black87,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: Colors.purple.shade50,
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Text(
-                    '${f.photoCount} Foto',
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.purple.shade700,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildStickerList(List<StickerModel> stickers, String baseUrl) {
-    return GridView.builder(
-      padding: const EdgeInsets.all(12),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 5,
-        crossAxisSpacing: 10,
-        mainAxisSpacing: 10,
-      ),
-      itemCount: stickers.length,
-      itemBuilder: (ctx, i) {
-        final s = stickers[i];
-        final assetUrl = s.getAssetUrl(baseUrl);
-
-        return InkWell(
-          onTap: () {
-            ref.read(mobileSessionProvider.notifier).addSticker(s);
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Stiker ${s.name} ditambahkan. Geser di kanvas atas untuk mengatur posisi.'),
-                duration: const Duration(seconds: 1),
-              ),
-            );
-          },
-          borderRadius: BorderRadius.circular(12),
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.purple.shade50,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.purple.shade100),
-            ),
-            child: Center(
-              child: assetUrl != null
-                  ? Image.network(
-                      assetUrl,
-                      width: 32,
-                      height: 32,
-                      errorBuilder: (_, _, _) => Text(
-                        s.emoji.isNotEmpty ? s.emoji : '✨',
-                        style: const TextStyle(fontSize: 24),
-                      ),
-                    )
-                  : Text(
-                      s.emoji.isNotEmpty ? s.emoji : '✨',
-                      style: const TextStyle(fontSize: 24),
-                    ),
-            ),
-          ),
-        );
-      },
     );
   }
 }
