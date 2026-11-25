@@ -75,15 +75,30 @@ class ApiService {
       _guard(() => _dio.post('/api/kiosk/sessions', data: {'frame_id': frameId}));
   Future<Response> updateStatus(int id, String s) =>
       _guard(() => _dio.patch('/api/kiosk/sessions/$id/status', data: {'status': s}));
-  Future<Response> uploadPhoto(int sid, int slot, String path) async {
+  Future<Response> uploadPhotoBytes(int sid, int slot, Uint8List bytes, String filename) async {
     try {
       final fd = FormData.fromMap({
         'slot_index': slot,
-        'photo': await MultipartFile.fromFile(path),
+        'photo': MultipartFile.fromBytes(bytes, filename: filename),
       });
       return await _dio.post('/api/kiosk/sessions/$sid/photos', data: fd);
     } on DioException catch (e) {
       throw Exception(_msg(e));
+    }
+  }
+
+  Future<bool> testConnection([String? customBaseUrl]) async {
+    try {
+      final url = customBaseUrl ?? await MobileStorage.getBaseUrl();
+      final client = Dio(BaseOptions(
+        baseUrl: url,
+        connectTimeout: const Duration(seconds: 4),
+        receiveTimeout: const Duration(seconds: 4),
+      ));
+      final res = await client.get('/api/kiosk/frames');
+      return res.statusCode == 200;
+    } catch (_) {
+      return false;
     }
   }
   Future<Response> renderOutput(int sid) => _guard(() => _dio.post('/api/kiosk/sessions/$sid/render'));
@@ -96,7 +111,7 @@ class ApiService {
   Future<Response> requestPrint(int sid, {int? outputId}) => _guard(() => _dio.post(
         '/api/kiosk/sessions/$sid/print',
         data: {
-          'output_id': ?outputId,
+          if (outputId != null) 'output_id': outputId,
         },
       ));
 
@@ -108,7 +123,7 @@ class ApiService {
           '/api/kiosk/sessions/$sid/share',
           data: {
             'method': method,
-            'shared_with': ?sharedWith,
+            if (sharedWith != null) 'shared_with': sharedWith,
           },
         ),
       );

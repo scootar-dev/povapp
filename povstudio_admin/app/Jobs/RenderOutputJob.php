@@ -38,6 +38,23 @@ class RenderOutputJob implements ShouldQueue
         $canvas = $manager->createImage($frame->output_width_px, $frame->output_height_px);
         $canvas->fill('#ffffff');
 
+        // The configured frame asset is the full template (including its
+        // opaque photo placeholders), so draw it as the background first.
+        if ($frame->overlay_path) {
+            $overlayPath = Storage::disk('public')->path($frame->overlay_path);
+            if (file_exists($overlayPath)) {
+                try {
+                    $overlay = $manager->decodePath($overlayPath);
+                    if ($overlay->width() !== $frame->output_width_px || $overlay->height() !== $frame->output_height_px) {
+                        $overlay->resize($frame->output_width_px, $frame->output_height_px);
+                    }
+                    $canvas->insert($overlay, x: 0, y: 0, alignment: 'top-left');
+                } catch (\Throwable $e) {
+                    Log::warning("RenderOutputJob: gagal load overlay {$overlayPath}: {$e->getMessage()}");
+                }
+            }
+        }
+
         $slots = $frame->slots;
 
         foreach ($session->selectedPhotos as $photo) {
@@ -102,21 +119,6 @@ class RenderOutputJob implements ShouldQueue
             } catch (\Throwable $e) {
                 Log::error("RenderOutputJob: gagal proses stiker {$sticker->id}: {$e->getMessage()}");
                 continue;
-            }
-        }
-
-        if ($frame->overlay_path) {
-            $overlayPath = Storage::disk('public')->path($frame->overlay_path);
-            if (file_exists($overlayPath)) {
-                try {
-                    $overlay = $manager->decodePath($overlayPath);
-                    if ($overlay->width() !== $frame->output_width_px || $overlay->height() !== $frame->output_height_px) {
-                        $overlay->resize($frame->output_width_px, $frame->output_height_px);
-                    }
-                    $canvas->insert($overlay, x: 0, y: 0, alignment: 'top-left');
-                } catch (\Throwable $e) {
-                    Log::warning("RenderOutputJob: gagal load overlay {$overlayPath}: {$e->getMessage()}");
-                }
             }
         }
 

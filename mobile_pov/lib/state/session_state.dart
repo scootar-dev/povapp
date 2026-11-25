@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/storage.dart';
 import '../models/frame_model.dart';
+import '../models/photo_model.dart';
 import '../models/sticker_model.dart';
 import '../services/api_service.dart';
 import '../services/composite_render_service.dart';
@@ -10,7 +11,12 @@ class MobileSessionData {
   final String? sessionCode;
   final FrameModel? frame;
   final List<PlacedSticker> stickers;
+<<<<<<< HEAD
   final List<String> localPhotos;
+=======
+  final List<CapturedPhoto> localPhotos;
+  final List<int> selectedIndices;
+>>>>>>> refs/remotes/origin/main
   final int? printOutputId;
   final int? digitalOutputId;
   final String? printPath;
@@ -35,7 +41,12 @@ class MobileSessionData {
     String? sessionCode,
     FrameModel? frame,
     List<PlacedSticker>? stickers,
+<<<<<<< HEAD
     List<String>? localPhotos,
+=======
+    List<CapturedPhoto>? localPhotos,
+    List<int>? selectedIndices,
+>>>>>>> refs/remotes/origin/main
     int? printOutputId,
     int? digitalOutputId,
     String? printPath,
@@ -96,6 +107,7 @@ class MobileSessionNotifier extends StateNotifier<MobileSessionData> {
   }
 
   Future<void> startSession() async {
+<<<<<<< HEAD
     if (state.frame == null) {
       state = state.copyWith(frame: FrameModel.defaultFrames.first);
     }
@@ -104,6 +116,79 @@ class MobileSessionNotifier extends StateNotifier<MobileSessionData> {
       if (state.frame!.id > 0) {
         final res = await _api.createSession(frameId: state.frame!.id);
         final d = res.data['data'];
+=======
+    if (state.frame == null) throw Exception('Pilih frame dulu');
+    final res = await _api.createSession(frameId: state.frame!.id);
+    final d = res.data['data'];
+    state = state.copyWith(sessionId: d['id'], sessionCode: d['session_code']);
+    await _api.updateStatus(state.sessionId!, 'shooting');
+  }
+
+  void addLocalPhoto(CapturedPhoto photo) => state = state.copyWith(localPhotos: [...state.localPhotos, photo]);
+
+  void clearLocalPhotos() => state = state.copyWith(localPhotos: [], selectedIndices: []);
+
+  void toggleSelect(int idx) {
+    final s = [...state.selectedIndices];
+    if (s.contains(idx)) {
+      s.remove(idx);
+    } else {
+      s.add(idx);
+    }
+    state = state.copyWith(selectedIndices: s);
+  }
+
+  /// Unggah hanya foto yang dipilih, dipetakan berurutan ke slot frame.
+  Future<void> uploadSelected() async {
+    if (state.sessionId == null) throw Exception('Sesi belum dimulai');
+    final indices = [...state.selectedIndices]..sort();
+    if (indices.isEmpty) throw Exception('Pilih minimal 1 foto');
+
+    final slots = state.frame?.photoCount ?? indices.length;
+    if (indices.length < slots) {
+      throw Exception('Pilih $slots foto dulu untuk frame ini');
+    }
+
+    for (var slot = 0; slot < slots && slot < indices.length; slot++) {
+      final photo = state.localPhotos[indices[slot]];
+      await _api.uploadPhotoBytes(state.sessionId!, slot, photo.bytes, photo.name);
+    }
+  }
+
+  Future<int> render() async {
+    final sid = state.sessionId;
+    if (sid == null) throw Exception('Sesi belum dimulai');
+
+    await _api.updateStatus(sid, 'rendering');
+
+    final placements = <Map<String, dynamic>>[];
+    for (final p in state.stickers) {
+      final stickerId = int.tryParse(p.sticker.id);
+      if (stickerId == null) continue;
+      placements.add({
+        'sticker_id': stickerId,
+        'x': p.dx.clamp(0.0, 0.95),
+        'y': p.dy.clamp(0.0, 0.95),
+        'size': (0.18 * p.scale).clamp(0.05, 1.0),
+        'rotation': 0,
+      });
+    }
+    await _api.saveStickers(sid, placements);
+
+    await _api.renderOutput(sid);
+
+    for (var i = 0; i < 30; i++) {
+      await Future.delayed(const Duration(seconds: 2));
+      final res = await _api.getOutputs(sid);
+      final outs = (res.data['data'] as List).cast<Map<String, dynamic>>();
+
+      final printMatches = outs.where((o) => o['type'] == 'print_image').toList();
+      final digitalMatches = outs.where((o) => o['type'] == 'digital_image').toList();
+      final printOut = printMatches.isEmpty ? null : printMatches.first;
+      final digitalOut = digitalMatches.isEmpty ? null : digitalMatches.first;
+
+      if (printOut != null) {
+>>>>>>> refs/remotes/origin/main
         state = state.copyWith(
           sessionId: d['id'],
           sessionCode: d['session_code'],

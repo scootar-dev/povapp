@@ -3,7 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/frame_model.dart';
 import '../models/sticker_model.dart';
 import '../state/session_state.dart';
+<<<<<<< HEAD
 import 'camera_shoot_screen.dart';
+=======
+import '../widgets/server_dialog.dart';
+import 'shoot_mobile_screen.dart';
+>>>>>>> refs/remotes/origin/main
 
 class FrameStickerScreen extends ConsumerStatefulWidget {
   const FrameStickerScreen({super.key});
@@ -63,6 +68,7 @@ class _FrameStickerScreenState extends ConsumerState<FrameStickerScreen>
 
     return Scaffold(
       appBar: AppBar(
+<<<<<<< HEAD
         title: const Text(
           'Desain Frame & Stiker',
           style: TextStyle(fontWeight: FontWeight.bold),
@@ -85,6 +91,35 @@ class _FrameStickerScreenState extends ConsumerState<FrameStickerScreen>
                     color: Colors.black.withValues(alpha: 0.08),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
+=======
+        title: const Text('Pilih Frame & Stiker'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings_ethernet),
+            tooltip: 'Pengaturan IP Server',
+            onPressed: () => showServerSettingsDialog(context, ref),
+          ),
+        ],
+        bottom: TabBar(controller: _tab, tabs: const [Tab(icon: Icon(Icons.dashboard), text: 'Template'), Tab(icon: Icon(Icons.brush), text: 'Kustom')]),
+      ),
+      body: Column(
+        children: [
+          // Preview kustom
+          Container(
+            height: 140,
+            margin: const EdgeInsets.all(12),
+            decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey.shade300)),
+            child: Stack(
+              children: [
+                Center(child: selectedFrame == null ? const Text('Pilih frame dulu', style: TextStyle(color: Colors.black54)) : Column(mainAxisSize: MainAxisSize.min, children: [Icon(Icons.filter_frames, size: 32, color: Colors.deepPurple), Text(selectedFrame.name, style: TextStyle(fontWeight: FontWeight.bold)), Text('${selectedFrame.photoCount} foto')])),
+                ...stickers.asMap().entries.map((e) => Positioned(
+                  left: e.value.dx * 260, top: e.value.dy * 100,
+                  child: GestureDetector(
+                    onPanUpdate: (d) => ref.read(mobileSessionProvider.notifier).updateStickerPos(e.key, (e.value.dx + d.delta.dx/300).clamp(0.0, 0.85), (e.value.dy + d.delta.dy/120).clamp(0.0, 0.85)),
+                    child: e.value.sticker.assetPath != null
+                        ? Image.network(e.value.sticker.getAssetUrl(baseUrl)!, width: 40, height: 40, errorBuilder: (_, __, ___) => const Icon(Icons.auto_awesome, size: 28))
+                        : const Icon(Icons.auto_awesome, size: 28),
+>>>>>>> refs/remotes/origin/main
                   ),
                 ],
               ),
@@ -308,6 +343,7 @@ class _FrameStickerScreenState extends ConsumerState<FrameStickerScreen>
                 ),
               ],
             ),
+<<<<<<< HEAD
             child: SafeArea(
               top: false,
               child: SizedBox(
@@ -328,6 +364,93 @@ class _FrameStickerScreenState extends ConsumerState<FrameStickerScreen>
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
                             color: Colors.white,
+=======
+          Expanded(
+            child: TabBarView(controller: _tab, children: [
+              // TEMPLATE TAB: grid frame dari admin
+              framesAsync.when(
+                loading: ()=> const Center(child: CircularProgressIndicator()),
+                error: (e,_)=> Center(child: Padding(padding: const EdgeInsets.all(16), child: Column(mainAxisSize: MainAxisSize.min, children: [
+                  const Icon(Icons.cloud_off, size: 48, color: Colors.redAccent),
+                  const SizedBox(height: 8),
+                  Text('Gagal terhubung ke server', textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  const SizedBox(height: 4),
+                  Text('$e', textAlign: TextAlign.center, style: const TextStyle(fontSize: 12, color: Colors.black54)),
+                  const SizedBox(height: 4),
+                  Text('Server URL: $baseUrl', style: const TextStyle(fontSize: 11, color: Colors.blueGrey), textAlign: TextAlign.center),
+                  const SizedBox(height: 12),
+                  Wrap(spacing: 8, alignment: WrapAlignment.center, children: [
+                    FilledButton.icon(icon: const Icon(Icons.refresh, size: 16), onPressed: ()=>ref.invalidate(framesProvider), label: const Text('Coba Lagi')),
+                    OutlinedButton.icon(icon: const Icon(Icons.settings_ethernet, size: 16), label: const Text('Ubah IP Server'), onPressed: () => showServerSettingsDialog(context, ref)),
+                  ]),
+                ]))),
+                data: (frames) => GridView.builder(
+                  padding: const EdgeInsets.all(12),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, childAspectRatio: 0.85, crossAxisSpacing: 12, mainAxisSpacing: 12),
+                  itemCount: frames.length,
+                  itemBuilder: (_, i) {
+                    final f = frames[i];
+                    final sel = selectedFrame?.id == f.id;
+                    return GestureDetector(
+                      onTap: ()=>ref.read(mobileSessionProvider.notifier).selectFrame(f),
+                      child: Container(
+                        decoration: BoxDecoration(border: Border.all(color: sel? Colors.deepPurple: Colors.grey.shade300, width: sel?3:1), borderRadius: BorderRadius.circular(12)),
+                        child: Column(children: [
+                          Expanded(child: f.thumbnailPath != null ? Image.network(f.getThumbnailUrl(baseUrl)!, fit: BoxFit.cover, width: double.infinity, errorBuilder: (_, __, ___)=> const Icon(Icons.image)) : const Icon(Icons.filter_frames, size: 48)),
+                          Padding(padding: const EdgeInsets.all(8), child: Text(f.name, style: TextStyle(fontWeight: sel?FontWeight.bold:FontWeight.normal))),
+                          Text('${f.photoCount} foto', style: const TextStyle(fontSize: 11)),
+                          if (sel) const Icon(Icons.check_circle, color: Colors.deepPurple, size: 16),
+                        ]),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              // KUSTOM TAB: frame list kecil + sticker picker
+              Column(children: [
+                Expanded(
+                  child: framesAsync.when(
+                    loading: ()=> const Center(child: CircularProgressIndicator()),
+                    error: (e,_)=> Center(child: Column(mainAxisSize: MainAxisSize.min, children: [Text('Error $e', textAlign: TextAlign.center), const SizedBox(height: 8), FilledButton(onPressed: ()=>ref.invalidate(framesProvider), child: const Text('Retry'))])),
+                    data: (frames) => GridView.builder(
+                      padding: const EdgeInsets.all(12),
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, childAspectRatio: 0.75, crossAxisSpacing: 8, mainAxisSpacing: 8),
+                      itemCount: frames.length,
+                      itemBuilder: (_, i) {
+                        final f = frames[i];
+                        final sel = selectedFrame?.id == f.id;
+                        return InkWell(onTap: ()=>ref.read(mobileSessionProvider.notifier).selectFrame(f), child: Container(decoration: BoxDecoration(border: Border.all(color: sel? Colors.deepPurple: Colors.grey.shade300, width: sel?2:1), borderRadius: BorderRadius.circular(8)), child: Column(children: [Expanded(child: Icon(Icons.filter_frames, color: sel? Colors.deepPurple: Colors.black54)), Text(f.name, style: const TextStyle(fontSize: 10), textAlign: TextAlign.center)])));
+                      },
+                    ),
+                  ),
+                ),
+                const Divider(),
+                const Padding(padding: EdgeInsets.symmetric(horizontal: 12), child: Align(alignment: Alignment.centerLeft, child: Text('Pilih Stiker (tap untuk tambah, drag di preview untuk pindah)', style: TextStyle(fontSize: 11, color: Colors.black54)))),
+                SizedBox(
+                  height: 80,
+                  child: stickersAsync.when(
+                    loading: () => const Center(child: CircularProgressIndicator()),
+                    error: (e, _) => Center(child: Text('Gagal load stiker: $e')),
+                    data: (apiStickers) => GridView.builder(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.all(8),
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 1, mainAxisSpacing: 8),
+                      itemCount: apiStickers.length,
+                      itemBuilder: (_, i) {
+                        final s = apiStickers[i];
+                        final chosen = stickers.any((p) => p.sticker.id == s.id);
+                        return GestureDetector(
+                          onTap: () => ref.read(mobileSessionProvider.notifier).toggleSticker(s),
+                          child: Container(
+                            width: 60,
+                            decoration: BoxDecoration(color: chosen ? Colors.deepPurple.withValues(alpha: 0.15) : Colors.grey.shade100, border: Border.all(color: chosen ? Colors.deepPurple : Colors.grey.shade300), borderRadius: BorderRadius.circular(8)),
+                            child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                              s.assetPath != null
+                                  ? Image.network(s.getAssetUrl(baseUrl)!, width: 28, height: 28, errorBuilder: (_, __, ___) => const Icon(Icons.auto_awesome, size: 24))
+                                  : const Icon(Icons.auto_awesome, size: 24),
+                              Text(s.name, style: const TextStyle(fontSize: 9)),
+                            ]),
+>>>>>>> refs/remotes/origin/main
                           ),
                         )
                       : const Icon(Icons.camera_alt),
