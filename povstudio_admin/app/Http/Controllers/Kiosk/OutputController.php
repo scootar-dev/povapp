@@ -24,9 +24,9 @@ class OutputController extends Controller
 
         $session->update(['status' => 'rendering']);
 
-        RenderOutputJob::dispatch($session);
+        RenderOutputJob::dispatchSync($session);
 
-        return response()->json(['message' => 'Render dimulai.'], 202);
+        return response()->json(['message' => 'Render selesai.'], 200);
     }
 
     public function index(Request $request, Session $session)
