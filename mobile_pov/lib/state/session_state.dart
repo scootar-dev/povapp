@@ -63,8 +63,7 @@ class MobileSessionData {
 }
 
 class MobileSessionNotifier extends StateNotifier<MobileSessionData> {
-  MobileSessionNotifier()
-      : super(MobileSessionData(frame: FrameModel.defaultFrames.first));
+  MobileSessionNotifier() : super(const MobileSessionData());
 
   final _api = ApiService();
 
@@ -235,9 +234,7 @@ class MobileSessionNotifier extends StateNotifier<MobileSessionData> {
     }
   }
 
-  void reset() => state = MobileSessionData(
-        frame: FrameModel.defaultFrames.first,
-      );
+  void reset() => state = const MobileSessionData();
 }
 
 final mobileSessionProvider =
@@ -251,7 +248,7 @@ final framesProvider = FutureProvider<List<FrameModel>>((ref) async {
         .map((f) => FrameModel.fromJson(f))
         .toList();
     if (apiList.isNotEmpty) {
-      return [...apiList, ...FrameModel.defaultFrames];
+      return apiList;
     }
   } catch (_) {
     return FrameModel.defaultFrames;
@@ -266,7 +263,7 @@ final stickersProvider = FutureProvider<List<StickerModel>>((ref) async {
         .map((s) => StickerModel.fromJson(s))
         .toList();
     if (apiList.isNotEmpty) {
-      return [...apiList, ...kStickers];
+      return apiList;
     }
   } catch (_) {
     return kStickers;

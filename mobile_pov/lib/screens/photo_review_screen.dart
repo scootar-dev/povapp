@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/frame_model.dart';
@@ -160,8 +159,7 @@ class _PhotoReviewScreenState extends ConsumerState<PhotoReviewScreen> {
                                 // Slot Foto yang terisi
                                 ...frame.effectiveSlots.map((slot) {
                                   final idx = slot.slotIndex;
-                                  final hasPhoto = idx < photos.length &&
-                                      File(photos[idx]).existsSync();
+                                  final hasPhoto = idx < photos.length;
 
                                   return Positioned(
                                     left: slot.x * cw,
@@ -175,8 +173,8 @@ class _PhotoReviewScreenState extends ConsumerState<PhotoReviewScreen> {
                                           borderRadius:
                                               BorderRadius.circular(10),
                                           child: hasPhoto
-                                              ? Image.file(
-                                                  File(photos[idx]),
+                                              ? Image.memory(
+                                                  photos[idx].bytes,
                                                   fit: BoxFit.cover,
                                                 )
                                               : Container(
@@ -263,7 +261,7 @@ class _PhotoReviewScreenState extends ConsumerState<PhotoReviewScreen> {
                                             placed.sticker.getAssetUrl(baseUrl)!,
                                             width: 32,
                                             height: 32,
-                                            errorBuilder: (_, _, _) => Text(
+                                            errorBuilder: (_, __, ___) => Text(
                                               placed.sticker.emoji.isNotEmpty
                                                   ? placed.sticker.emoji
                                                   : '✨',

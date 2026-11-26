@@ -235,7 +235,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                             ? Image.network(
                                 '$baseUrl/storage/${s.printPath}',
                                 fit: BoxFit.contain,
-                                errorBuilder: (_, _, _) => const Center(
+                                errorBuilder: (_, __, ___) => const Center(
                                   child: Icon(Icons.broken_image, size: 48),
                                 ),
                               )
